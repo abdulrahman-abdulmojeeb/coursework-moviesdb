@@ -149,3 +149,9 @@ CREATE TABLE IF NOT EXISTS link (
 );
 
 COMMENT ON TABLE link IS 'External movie database identifiers';
+
+-- Data integrity notes:
+-- ratings.rating: CHECK (rating >= 0.5 AND rating <= 5.0) enforces MovieLens scale
+-- app_user_rating.rating: same CHECK constraint for application ml_user
+-- All FK columns are NOT NULL to prevent orphaned associations
+-- UNIQUE(user_id, movie_id) on rating prevents duplicate ratings per user
