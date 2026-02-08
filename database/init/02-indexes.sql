@@ -38,8 +38,8 @@ CREATE INDEX IF NOT EXISTS idx_rating_user_movie ON rating (user_id, movie_id);
 CREATE INDEX IF NOT EXISTS idx_genre_name ON genre (name);
 
 -- Indexes for movie-genre junction table
-CREATE INDEX IF NOT EXISTS idx_movie_genres_movie ON movie_genre (movie_id);
-CREATE INDEX IF NOT EXISTS idx_movie_genres_genre ON movie_genre (genre_id);
+CREATE INDEX IF NOT EXISTS idx_movie_genre_movie ON movie_genre (movie_id);
+CREATE INDEX IF NOT EXISTS idx_movie_genre_genre ON movie_genre (genre_id);
 
 -- ============================================
 -- Tag Indexes
@@ -73,15 +73,24 @@ CREATE INDEX IF NOT EXISTS idx_personality_stability ON personality_user (emotio
 CREATE INDEX IF NOT EXISTS idx_movie_collection_user_id ON movie_collection (user_id);
 
 -- Index for collection items
-CREATE INDEX IF NOT EXISTS idx_collection_items_collection ON collection_item (collection_id);
-CREATE INDEX IF NOT EXISTS idx_collection_items_movie ON collection_item (movie_id);
+CREATE INDEX IF NOT EXISTS idx_collection_item_collection ON collection_item (collection_id);
+CREATE INDEX IF NOT EXISTS idx_collection_item_movie ON collection_item (movie_id);
 
 -- ============================================
 -- App User Indexes
 -- ============================================
 
 -- Index for username lookup (login)
-CREATE INDEX IF NOT EXISTS idx_app_users_username ON app_user (username);
+CREATE INDEX IF NOT EXISTS idx_app_user_username ON app_user (username);
 
 -- Index for email lookup
-CREATE INDEX IF NOT EXISTS idx_app_users_email ON app_user (email);
+CREATE INDEX IF NOT EXISTS idx_app_user_email ON app_user (email);
+
+-- Partial indexes for common filtered queries
+-- High-rated movies (frequently accessed in recommendations)
+CREATE INDEX IF NOT EXISTS idx_rating_high
+    ON rating (movie_id) WHERE rating >= 4.0;
+
+-- Active app users (skip deactivated in auth lookups)
+CREATE INDEX IF NOT EXISTS idx_app_user_active
+    ON app_user (username) WHERE is_active = true;
