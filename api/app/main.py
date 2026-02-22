@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan handler for startup and shutdown."""
     # Startup
     logger.info("Starting application...")
     init_db_pool()
@@ -67,11 +66,9 @@ app.include_router(collections.router, prefix="/api/collections", tags=["Collect
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
     return {"message": "MovieLens API", "version": "1.0.0"}
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
     return {"status": "healthy"}
