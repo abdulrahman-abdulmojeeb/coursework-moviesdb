@@ -26,3 +26,11 @@ COMMENT ON COLUMN external_ratings.rated IS 'Content rating (G, PG, PG-13, R, et
 CREATE INDEX IF NOT EXISTS idx_external_ratings_imdb ON external_ratings(imdb_rating) WHERE imdb_rating IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_external_ratings_rt ON external_ratings(rotten_tomatoes_score) WHERE rotten_tomatoes_score IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_external_ratings_meta ON external_ratings(metacritic_score) WHERE metacritic_score IS NOT NULL;
+
+-- Enrichment coverage validation query:
+-- SELECT
+--     (SELECT COUNT(*) FROM movie_detail) AS tmdb_enriched,
+--     (SELECT COUNT(*) FROM external_ratings) AS omdb_enriched,
+--     (SELECT COUNT(*) FROM movie) AS total_movies,
+--     ROUND(100.0 * (SELECT COUNT(*) FROM movie_detail) / (SELECT COUNT(*) FROM movie), 1) AS tmdb_pct,
+--     ROUND(100.0 * (SELECT COUNT(*) FROM external_ratings) / (SELECT COUNT(*) FROM movie), 1) AS omdb_pct;
