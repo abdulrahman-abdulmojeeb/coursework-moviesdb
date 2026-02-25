@@ -12,13 +12,6 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
 
-    # TMDB
-    tmdb_api_key: str = ""
-    tmdb_base_url: str = "https://api.themoviedb.org/3"
-
-    # OMDb (for external ratings)
-    omdb_api_key: str = ""
-
     # CORS
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
