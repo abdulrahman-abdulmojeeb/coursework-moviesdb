@@ -16,7 +16,7 @@ import {
   Legend,
 } from "recharts"
 import { personalityApi, genresApi } from "../services/api"
-import type { PersonalityTrait } from "../types"
+import type { Genre, PersonalityTrait } from "../types"
 import {
   Card,
   CardContent,
@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-import { Info } from "lucide-react"
+import InfoCard from "@/components/InfoCard"
 
 const TRAITS = [
   "openness",
@@ -51,7 +51,7 @@ export default function Personality() {
 
   const { data: genres } = useQuery({
     queryKey: ["genres"],
-    queryFn: () => genresApi.getGenres().then((res) => res.data),
+    queryFn: () => genresApi.getGenres().then((res) => res.data as Genre[]),
   })
 
   const { data: traits, isLoading: loadingTraits } = useQuery({
@@ -80,13 +80,11 @@ export default function Personality() {
     queryFn: () => personalityApi.getSegments().then((res) => res.data),
   })
 
-  // Format traits for radar chart
   const radarData = traits?.map((t) => ({
     trait: t.trait.replace("_", " "),
     value: t.mean,
   }))
 
-  // Format genre profile for comparison radar
   const profileRadarData =
     genreProfile?.genre_lovers_profile && genreProfile?.overall_average
       ? TRAITS.map((trait) => ({
@@ -113,7 +111,6 @@ export default function Personality() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-        {/* Traits Overview */}
         {radarData && (
           <Card>
             <CardHeader>
@@ -129,8 +126,8 @@ export default function Personality() {
                     <Radar
                       name="Average"
                       dataKey="value"
-                      stroke="hsl(var(--primary))"
-                      fill="hsl(var(--primary))"
+                      stroke="var(--primary)"
+                      fill="var(--primary)"
                       fillOpacity={0.5}
                     />
                   </RadarChart>
@@ -140,7 +137,6 @@ export default function Personality() {
           </Card>
         )}
 
-        {/* Trait-Genre Correlation */}
         <Card>
           <CardHeader>
             <CardTitle>Trait-Genre Correlation</CardTitle>
@@ -200,7 +196,7 @@ export default function Personality() {
                     <XAxis type="number" domain={[0, 5]} />
                     <YAxis type="category" dataKey="genre" width={80} />
                     <Tooltip />
-                    <Bar dataKey="avg_rating" fill="#8b5cf6" />
+                    <Bar dataKey="avg_rating" fill="var(--primary)" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -209,7 +205,6 @@ export default function Personality() {
         </Card>
       </div>
 
-      {/* Genre Profile Analysis */}
       <Card>
         <CardHeader>
           <CardTitle>Genre Personality Profile</CardTitle>
@@ -225,7 +220,7 @@ export default function Personality() {
                 <SelectValue placeholder="Select a genre..." />
               </SelectTrigger>
               <SelectContent>
-                {genres?.map((genre: { genre_id: number; name: string }) => (
+                {genres?.map((genre) => (
                   <SelectItem key={genre.genre_id} value={genre.name}>
                     {genre.name}
                   </SelectItem>
@@ -248,15 +243,15 @@ export default function Personality() {
                   <Radar
                     name="Genre Lovers"
                     dataKey="genreLovers"
-                    stroke="#8b5cf6"
-                    fill="#8b5cf6"
+                    stroke="var(--primary)"
+                    fill="var(--primary)"
                     fillOpacity={0.5}
                   />
                   <Radar
                     name="Overall Average"
                     dataKey="overall"
-                    stroke="#6b7280"
-                    fill="#6b7280"
+                    stroke="var(--muted-foreground)"
+                    fill="var(--muted-foreground)"
                     fillOpacity={0.3}
                   />
                   <Legend />
@@ -273,7 +268,6 @@ export default function Personality() {
         </CardContent>
       </Card>
 
-      {/* Viewer Segments */}
       {segments && Object.keys(segments).length > 0 && (
         <Card>
           <CardHeader>
@@ -306,27 +300,19 @@ export default function Personality() {
         </Card>
       )}
 
-      {/* Data Source Info */}
-      <Card className="bg-muted/50">
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            <Info className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-muted-foreground space-y-2">
-              <p>
-                <strong>Data Source:</strong> The personality data on this page is{" "}
-                <strong>synthetically generated</strong> for demonstration purposes.
-                It simulates Big Five personality traits (OCEAN model) for the 610 users in the MovieLens dataset.
-              </p>
-              <p>
-                <strong>Methodology:</strong> Each user is assigned randomized personality scores (1-5 scale) for
-                openness, conscientiousness, extraversion, agreeableness, and emotional stability. Correlations
-                between traits and genre preferences are computed by aggregating ratings from ml_user with similar
-                personality profiles.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <InfoCard>
+        <p>
+          <strong>Data Source:</strong> The personality data on this page is{" "}
+          <strong>synthetically generated</strong> for demonstration purposes.
+          It simulates Big Five personality traits (OCEAN model) for the 610 users in the MovieLens dataset.
+        </p>
+        <p>
+          <strong>Methodology:</strong> Each user is assigned randomized personality scores (1-5 scale) for
+          openness, conscientiousness, extraversion, agreeableness, and emotional stability. Correlations
+          between traits and genre preferences are computed by aggregating ratings from users with similar
+          personality profiles.
+        </p>
+      </InfoCard>
     </div>
   )
 }

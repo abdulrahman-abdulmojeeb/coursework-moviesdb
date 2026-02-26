@@ -27,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Info } from "lucide-react"
+import InfoCard from "@/components/InfoCard"
 import { cn } from "@/lib/utils"
 
 export default function GenreReports() {
@@ -45,7 +45,7 @@ export default function GenreReports() {
 
   const getBarColor = (value: number) => {
     if (value >= 4) return "#22c55e"
-    if (value >= 3.5) return "#84cc16"
+    if (value >= 3.5) return "#30bfc2"
     if (value >= 3) return "#eab308"
     return "#ef4444"
   }
@@ -66,7 +66,6 @@ export default function GenreReports() {
         </div>
       )}
 
-      {/* Genre Popularity */}
       {popularity && (
         <Card>
           <CardHeader>
@@ -80,7 +79,7 @@ export default function GenreReports() {
                   <XAxis type="number" domain={[0, 5]} />
                   <YAxis type="category" dataKey="genre" width={80} />
                   <Tooltip
-                    formatter={(value: number) => [value.toFixed(2), "Avg Rating"]}
+                    formatter={(value?: number) => [value?.toFixed(2) ?? "", "Avg Rating"]}
                   />
                   <Bar dataKey="avg_rating">
                     {popularity.map((entry, index) => (
@@ -94,7 +93,6 @@ export default function GenreReports() {
         </Card>
       )}
 
-      {/* Genre Polarisation */}
       {polarisation && (
         <Card>
           <CardHeader>
@@ -152,29 +150,21 @@ export default function GenreReports() {
         </Card>
       )}
 
-      {/* Data Source Info */}
-      <Card className="bg-muted/50">
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            <Info className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-muted-foreground space-y-2">
-              <p>
-                <strong>Data Source:</strong> Genre statistics are derived from the{" "}
-                <a href="https://grouplens.org/datasets/movielens/" target="_blank" rel="noopener noreferrer" className="underline">
-                  MovieLens ml-latest-small dataset
-                </a>{" "}
-                containing 100,000 ratings from 600 users across 9,700 movies.
-              </p>
-              <p>
-                <strong>Methodology:</strong> Popularity is measured by average rating across all movies in each genre.
-                Polarisation score indicates how divisive a genre is — calculated as the percentage of ratings that are
-                either very low (≤2) or very high (≥4), excluding middle ratings. Higher polarisation means viewers tend
-                to either love or hate movies in that genre.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <InfoCard>
+        <p>
+          <strong>Data Source:</strong> Genre statistics are derived from the{" "}
+          <a href="https://grouplens.org/datasets/movielens/" target="_blank" rel="noopener noreferrer" className="underline">
+            MovieLens ml-latest-small dataset
+          </a>{" "}
+          containing 100,000 ratings from 600 users across 9,700 movies.
+        </p>
+        <p>
+          <strong>Methodology:</strong> Popularity is measured by average rating across all movies in each genre.
+          Polarisation score indicates how divisive a genre is — calculated as the percentage of ratings that are
+          either very low (≤2) or very high (≥4), excluding middle ratings. Higher polarisation means viewers tend
+          to either love or hate movies in that genre.
+        </p>
+      </InfoCard>
     </div>
   )
 }

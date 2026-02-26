@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { predictionsApi, genresApi } from "../services/api"
-import type { PredictionResult } from "../types"
+import type { Genre, PredictionResult } from "../types"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -23,7 +23,8 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, Info } from "lucide-react"
+import { AlertCircle } from "lucide-react"
+import InfoCard from "@/components/InfoCard"
 import { cn } from "@/lib/utils"
 
 export default function Predictions() {
@@ -33,7 +34,7 @@ export default function Predictions() {
 
   const { data: genres } = useQuery({
     queryKey: ["genres"],
-    queryFn: () => genresApi.getGenres().then((res) => res.data),
+    queryFn: () => genresApi.getGenres().then((res) => res.data as Genre[]),
   })
 
   const predictMutation = useMutation({
@@ -65,7 +66,6 @@ export default function Predictions() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-        {/* Input Form */}
         <Card>
           <CardHeader>
             <CardTitle>New Title Details</CardTitle>
@@ -97,7 +97,7 @@ export default function Predictions() {
             <div className="space-y-2">
               <Label>Genres (select at least one)</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {genres?.map((genre: { genre_id: number; name: string }) => (
+                {genres?.map((genre) => (
                   <Badge
                     key={genre.genre_id}
                     variant={
@@ -129,7 +129,6 @@ export default function Predictions() {
           </CardContent>
         </Card>
 
-        {/* Results */}
         <Card>
           <CardHeader>
             <CardTitle>Prediction Results</CardTitle>
@@ -193,7 +192,6 @@ export default function Predictions() {
                   </div>
                 </div>
 
-                {/* Rating Distribution */}
                 <div>
                   <p className="text-sm font-medium mb-2">
                     Predicted Rating Distribution
@@ -205,9 +203,9 @@ export default function Predictions() {
                         <XAxis dataKey="rating" />
                         <YAxis />
                         <Tooltip
-                          formatter={(value: number) => [`${value}%`, "Percentage"]}
+                          formatter={(value?: number) => [`${value ?? 0}%`, "Percentage"]}
                         />
-                        <Bar dataKey="percentage" fill="hsl(var(--primary))" />
+                        <Bar dataKey="percentage" fill="var(--primary)" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -218,28 +216,20 @@ export default function Predictions() {
         </Card>
       </div>
 
-      {/* Data Source Info */}
-      <Card className="bg-muted/50">
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            <Info className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-muted-foreground space-y-2">
-              <p>
-                <strong>Data Source:</strong> Predictions are based on the{" "}
-                <a href="https://grouplens.org/datasets/movielens/" target="_blank" rel="noopener noreferrer" className="underline">
-                  MovieLens ml-latest-small dataset
-                </a>{" "}
-                containing 100,000 ratings from 600 users across 9,700 movies.
-              </p>
-              <p>
-                <strong>Methodology:</strong> The prediction algorithm calculates genre similarity between your input and existing movies,
-                then computes a weighted average rating based on similar titles. The confidence interval reflects the variance in ratings
-                for movies with matching genre profiles. Higher genre overlap with well-rated films yields more confident predictions.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <InfoCard>
+        <p>
+          <strong>Data Source:</strong> Predictions are based on the{" "}
+          <a href="https://grouplens.org/datasets/movielens/" target="_blank" rel="noopener noreferrer" className="underline">
+            MovieLens ml-latest-small dataset
+          </a>{" "}
+          containing 100,000 ratings from 600 users across 9,700 movies.
+        </p>
+        <p>
+          <strong>Methodology:</strong> The prediction algorithm calculates genre similarity between your input and existing movies,
+          then computes a weighted average rating based on similar titles. The confidence interval reflects the variance in ratings
+          for movies with matching genre profiles. Higher genre overlap with well-rated films yields more confident predictions.
+        </p>
+      </InfoCard>
     </div>
   )
 }

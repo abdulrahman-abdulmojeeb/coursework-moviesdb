@@ -13,6 +13,7 @@ import {
   Cell,
 } from "recharts"
 import { ratingsApi, genresApi } from "../services/api"
+import type { Genre } from "../types"
 import {
   Card,
   CardContent,
@@ -29,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Info } from "lucide-react"
+import InfoCard from "@/components/InfoCard"
 
 const COLORS = ["#ef4444", "#f59e0b", "#22c55e"]
 
@@ -38,7 +39,7 @@ export default function RatingPatterns() {
 
   const { data: genres } = useQuery({
     queryKey: ["genres"],
-    queryFn: () => genresApi.getGenres().then((res) => res.data),
+    queryFn: () => genresApi.getGenres().then((res) => res.data as Genre[]),
   })
 
   const { data: patterns, isLoading: loadingPatterns } = useQuery({
@@ -76,7 +77,6 @@ export default function RatingPatterns() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-        {/* Rating Patterns by Genre */}
         {patterns && (
           <Card>
             <CardHeader>
@@ -90,7 +90,7 @@ export default function RatingPatterns() {
                     <XAxis type="number" domain={[0, 5]} />
                     <YAxis type="category" dataKey="genre" width={80} />
                     <Tooltip />
-                    <Bar dataKey="mean_user_avg" fill="#3b82f6" name="Mean Rating" />
+                    <Bar dataKey="mean_user_avg" fill="var(--primary)" name="Mean Rating" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -98,7 +98,6 @@ export default function RatingPatterns() {
           </Card>
         )}
 
-        {/* Low Rater Analysis */}
         {lowRaters && (
           <Card>
             <CardHeader>
@@ -118,8 +117,8 @@ export default function RatingPatterns() {
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      label={({ rater_type, percent }) =>
-                        `${rater_type}: ${(percent * 100).toFixed(0)}%`
+                      label={({ name, percent }: { name?: string; percent?: number }) =>
+                        `${name ?? ""}: ${((percent ?? 0) * 100).toFixed(0)}%`
                       }
                     >
                       {lowRaters.map((_: unknown, index: number) => (
@@ -160,7 +159,6 @@ export default function RatingPatterns() {
         )}
       </div>
 
-      {/* Cross-Genre Preferences */}
       <Card>
         <CardHeader>
           <CardTitle>Cross-Genre Preferences</CardTitle>
@@ -176,7 +174,7 @@ export default function RatingPatterns() {
                 <SelectValue placeholder="Select a genre..." />
               </SelectTrigger>
               <SelectContent>
-                {genres?.map((genre: { genre_id: number; name: string }) => (
+                {genres?.map((genre) => (
                   <SelectItem key={genre.genre_id} value={genre.name}>
                     {genre.name}
                   </SelectItem>
@@ -197,7 +195,7 @@ export default function RatingPatterns() {
                   <XAxis type="number" domain={[0, 5]} />
                   <YAxis type="category" dataKey="genre" width={100} />
                   <Tooltip />
-                  <Bar dataKey="avg_rating" fill="#8b5cf6" name="Avg Rating" />
+                  <Bar dataKey="avg_rating" fill="var(--primary)" name="Avg Rating" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -217,28 +215,20 @@ export default function RatingPatterns() {
         </CardContent>
       </Card>
 
-      {/* Data Source Info */}
-      <Card className="bg-muted/50">
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            <Info className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-muted-foreground space-y-2">
-              <p>
-                <strong>Data Source:</strong> Analysis is based on the{" "}
-                <a href="https://grouplens.org/datasets/movielens/" target="_blank" rel="noopener noreferrer" className="underline">
-                  MovieLens ml-latest-small dataset
-                </a>{" "}
-                containing 100,000 ratings from 600 users across 9,700 movies.
-              </p>
-              <p>
-                <strong>Methodology:</strong> Rating patterns are calculated by aggregating individual user ratings per genre.
-                Viewer categories (harsh critics, moderate raters, generous raters) are determined by each user's average rating
-                across all their reviews. Cross-genre preferences show how fans of one genre rate movies in other genres.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <InfoCard>
+        <p>
+          <strong>Data Source:</strong> Analysis is based on the{" "}
+          <a href="https://grouplens.org/datasets/movielens/" target="_blank" rel="noopener noreferrer" className="underline">
+            MovieLens ml-latest-small dataset
+          </a>{" "}
+          containing 100,000 ratings from 600 users across 9,700 movies.
+        </p>
+        <p>
+          <strong>Methodology:</strong> Rating patterns are calculated by aggregating individual user ratings per genre.
+          Viewer categories (harsh critics, moderate raters, generous raters) are determined by each user's average rating
+          across all their reviews. Cross-genre preferences show how fans of one genre rate movies in other genres.
+        </p>
+      </InfoCard>
     </div>
   )
 }
