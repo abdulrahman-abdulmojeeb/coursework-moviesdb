@@ -96,6 +96,26 @@ CREATE TABLE IF NOT EXISTS app_user (
 
 COMMENT ON TABLE app_user IS 'Application ml_user for the collection planner feature';
 
+-- Personality traits for app users
+CREATE TABLE IF NOT EXISTS personality_app_user (
+    user_id INTEGER PRIMARY KEY REFERENCES app_user(user_id) ON DELETE CASCADE,
+    openness DECIMAL(4,2) CHECK (openness >= 1.0 AND openness <= 5.0),
+    agreeableness DECIMAL(4,2) CHECK (agreeableness >= 1.0 AND agreeableness <= 5.0),
+    emotional_stability DECIMAL(4,2) CHECK (emotional_stability >= 1.0 AND emotional_stability <= 5.0),
+    conscientiousness DECIMAL(4,2) CHECK (conscientiousness >= 1.0 AND conscientiousness <= 5.0),
+    extraversion DECIMAL(4,2) CHECK (extraversion >= 1.0 AND extraversion <= 5.0)
+);
+
+-- App user ratings table
+CREATE TABLE IF NOT EXISTS app_user_rating (
+    rating_id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES app_user(user_id) ON DELETE CASCADE,
+    movie_id INTEGER NOT NULL REFERENCES movie(movie_id) ON DELETE CASCADE,
+    rating DECIMAL(2,1) NOT NULL CHECK (rating >= 0.5 AND rating <= 5.0),
+    timestamp BIGINT NOT NULL,
+    UNIQUE (user_id, movie_id)
+);
+
 -- Movie Collection (curated lists of movies)
 CREATE TABLE IF NOT EXISTS movie_collection (
     collection_id SERIAL PRIMARY KEY,
