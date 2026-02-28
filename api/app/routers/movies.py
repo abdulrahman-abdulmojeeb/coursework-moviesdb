@@ -4,18 +4,9 @@ from typing import Optional
 import io
 
 from app.database import execute_query, execute_query_one, get_db_connection
+from app.helpers import build_poster_url
 
 router = APIRouter()
-
-# TMDB image base URL
-TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
-
-
-def build_poster_url(poster_path: str | None) -> str | None:
-    """Build full TMDB poster URL from path."""
-    if poster_path:
-        return f"{TMDB_IMAGE_BASE}{poster_path}"
-    return None
 
 
 @router.get("")
@@ -30,10 +21,6 @@ async def get_movies(
     sort_by: str = Query("title", regex="^(title|year|rating)$"),
     sort_order: str = Query("asc", regex="^(asc|desc)$"),
 ):
-    """
-    Get paginated list of movies with optional filters.
-    Requirement 1: Movie Catalogue Dashboard
-    """
     offset = (page - 1) * limit
 
     # Build query dynamically based on filters
@@ -139,15 +126,14 @@ async def get_movies(
 
 @router.get("/export/enrichment.sql")
 async def export_enrichment_sql():
-    """Stream a pg COPY dump of movie_detail and external_ratings tables."""
     buf = io.BytesIO()
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        # movie_detail
-        buf.write(b"TRUNCATE movie_detail;\n")
-        buf.write(b"COPY movie_detail FROM stdin;\n")
+        # movie_details
+        buf.write(b"TRUNCATE movie_details;\n")
+        buf.write(b"COPY movie_details FROM stdin;\n")
         cursor.copy_to(buf, "movie_detail")
         buf.write(b"\\.\n")
 
@@ -169,7 +155,6 @@ async def export_enrichment_sql():
 
 @router.get("/{movie_id}")
 async def get_movie(movie_id: int):
-    """Get detailed information about a specific movie."""
     query = """
         SELECT
             m.movie_id,
@@ -227,7 +212,6 @@ async def get_movie(movie_id: int):
 
 @router.get("/{movie_id}/ratings")
 async def get_movie_ratings(movie_id: int):
-    """Get rating distribution for a specific movie."""
     query = """
         WITH rating_counts AS (
             SELECT
