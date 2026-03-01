@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from app.database import execute_query, execute_query_one
+from app.helpers import build_poster_url
 
 router = APIRouter()
 
@@ -15,11 +16,6 @@ class MoviePredictionRequest(BaseModel):
 
 @router.post("/predict")
 async def predict_rating(request: MoviePredictionRequest):
-    """
-    Predict likely viewer ratings for a new/upcoming title.
-    Requirement 4: Predictive Ratings
-    Uses content-based similarity to find similar movies and predict ratings.
-    """
     if not request.genres:
         raise HTTPException(status_code=400, detail="At least one genre is required")
 
@@ -111,17 +107,11 @@ async def predict_rating(request: MoviePredictionRequest):
     }
 
 
-TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
-
-
 @router.get("/similar/{movie_id}")
 async def get_similar_movies(
     movie_id: int,
     limit: int = Query(10, ge=1, le=50),
 ):
-    """
-    Find similar movies based on genre overlap and rating patterns.
-    """
     # First get the target movie's genres
     movie = execute_query_one(
         "SELECT movie_id, title FROM movie WHERE movie_id = %s",
@@ -168,10 +158,8 @@ async def get_similar_movies(
 
     similar = execute_query(query, (movie_id, movie_id, limit))
 
-    # Add poster URLs
     for item in similar:
-        poster_path = item.get("poster_path")
-        item["poster_url"] = f"{TMDB_IMAGE_BASE}{poster_path}" if poster_path else None
+        item["poster_url"] = build_poster_url(item.get("poster_path"))
 
     return {
         "source_movie": movie,
@@ -184,10 +172,6 @@ async def get_preview_panel_prediction(
     movie_id: int,
     panel_size: int = Query(100, ge=10, le=500),
 ):
-    """
-    Generate predicted rating using a 'preview panel' of representative users.
-    Requirement 4: Preview panel prediction
-    """
     # Select diverse users who rate frequently and have varied tastes
     query = """
         WITH active_users AS (
