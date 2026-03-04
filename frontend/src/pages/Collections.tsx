@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import LoginRequired from "@/components/LoginRequired"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -25,17 +26,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { AlertCircle, Plus, Trash2, User, X } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { AlertCircle, Plus, Trash2, X } from "lucide-react"
+import { cn, isLoggedIn } from "@/lib/utils"
 
-export default function movie_collection() {
+export default function Collections() {
   const queryClient = useQueryClient()
   const [selectedCollection, setSelectedCollection] = useState<number | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newTitle, setNewTitle] = useState("")
   const [newNote, setNewNote] = useState("")
-
-  const isLoggedIn = !!localStorage.getItem("access_token")
 
   const {
     data: collections,
@@ -45,7 +44,7 @@ export default function movie_collection() {
     queryKey: ["collections"],
     queryFn: () =>
       collectionsApi.getCollections().then((res) => res.data as Collection[]),
-    enabled: isLoggedIn,
+    enabled: isLoggedIn(),
   })
 
   const { data: collectionDetail } = useQuery({
@@ -89,25 +88,8 @@ export default function movie_collection() {
     },
   })
 
-  if (!isLoggedIn) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader>
-            <User className="h-12 w-12 mx-auto text-muted-foreground" />
-            <CardTitle>Login Required</CardTitle>
-            <CardDescription>
-              You need to be logged in to view and manage collections.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild>
-              <Link to="/login">Login / Register</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  if (!isLoggedIn()) {
+    return <LoginRequired description="You need to be logged in to view and manage collections." />
   }
 
   return (
@@ -187,7 +169,6 @@ export default function movie_collection() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-        {/* Collections List */}
         <div className="space-y-4">
           {collections?.map((collection) => (
             <Card
@@ -224,7 +205,6 @@ export default function movie_collection() {
           )}
         </div>
 
-        {/* Collection Detail */}
         <div className="lg:col-span-2">
           {selectedCollection && collectionDetail ? (
             <Card>
@@ -247,48 +227,50 @@ export default function movie_collection() {
                 </div>
               </CardHeader>
               <CardContent>
-                {collectionDetail.movies_by_genre?.length > 0 ? (
-                  <div className="space-y-6">
-                    {collectionDetail.movies_by_genre.map((group) => (
-                      <div key={group.genre}>
-                        <h3 className="font-medium mb-2 flex items-center gap-2">
-                          <Badge>{group.genre}</Badge>
-                          <span className="text-muted-foreground text-sm">
-                            {group.movies.length} movies
-                          </span>
-                        </h3>
-                        <div className="space-y-2">
-                          {group.movies.map((movie) => (
-                            <div
-                              key={movie.movie_id}
-                              className="flex justify-between items-center p-2 bg-muted rounded-md"
+              {collectionDetail.movies?.length > 0 ? (
+                  <div className="space-y-2">
+                    {collectionDetail.movies.map((movie) => (
+                      <div
+                        key={movie.movie_id}
+                        className="flex justify-between items-center p-3 bg-muted rounded-md gap-4"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Link
+                              to={`/movies/${movie.movie_id}`}
+                              className="font-medium hover:text-primary transition-colors"
                             >
-                              <div>
-                                <span className="font-medium">{movie.title}</span>
-                                <span className="text-muted-foreground text-sm ml-2">
-                                  ({movie.release_year})
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <span className="text-sm text-muted-foreground">
-                                  {movie.avg_rating} stars
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 text-destructive hover:text-destructive"
-                                  onClick={() =>
-                                    removeMovieMutation.mutate({
-                                      collectionId: selectedCollection,
-                                      movieId: movie.movie_id,
-                                    })
-                                  }
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
+                              {movie.title}
+                            </Link>
+                            <span className="text-muted-foreground text-sm">
+                              ({movie.release_year})
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {movie.genres.map((genre) => (
+                              <Badge key={genre} variant="secondary" className="text-xs">
+                                {genre}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <span className="text-sm text-muted-foreground">
+                            ⭐ {movie.avg_rating}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-destructive hover:text-destructive"
+                            onClick={() =>
+                              removeMovieMutation.mutate({
+                                collectionId: selectedCollection,
+                                movieId: movie.movie_id,
+                              })
+                            }
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}

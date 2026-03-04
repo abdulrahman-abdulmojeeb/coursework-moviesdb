@@ -106,16 +106,17 @@ export interface Collection {
   movie_count: number
 }
 
-export interface CollectionDetail extends Collection {
-  movies_by_genre: {
-    genre: string
-    movies: {
-      movie_id: number
-      title: string
-      release_year: number
-      avg_rating: number
-      added_at: string
-    }[]
+export interface CollectionDetail {
+  collection_id: number
+  title: string
+  note?: string
+  movies: {
+    movie_id: number
+    title: string
+    release_year: number
+    avg_rating: number
+    added_at: string
+    genres: string[]
   }[]
 }
 
@@ -139,4 +140,38 @@ export interface PaginatedResponse<T> {
   limit: number
   total: number
   pages: number
+}
+
+export interface SimilarMovie {
+  movie_id: number
+  title: string
+  release_year: number | null
+  poster_url: string | null
+  matching_genres: number
+  genre_similarity_pct: number
+  avg_rating: number | null
+  rating_count: number
+}
+
+export interface SimilarMoviesResponse {
+  source_movie: { movie_id: number; title: string }
+  similar_movies: SimilarMovie[]
+}
+
+export interface Recommendation {
+  movie_id: number
+  title: string
+  release_year: number | null
+  predicted_rating?: number
+  relevance_score?: number
+  vote_count?: number
+  poster_path: string | null
+  genres: string[]
+  method: "collaborative" | "content_based"
+}
+
+export interface RecommendationsResponse {
+  method: "collaborative" | "content_based"
+  ratings_count: number
+  recommendations: Recommendation[]
 }
