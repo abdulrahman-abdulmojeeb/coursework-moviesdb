@@ -23,12 +23,18 @@ class CollectionItemAdd(BaseModel):
     movie_id: int
 
 
+def _verify_ownership(collection_id: int, user_id: int):
+    collection = execute_query_one(
+        "SELECT * FROM movie_collection WHERE collection_id = %s AND user_id = %s",
+        (collection_id, user_id)
+    )
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    return collection
+
+
 @router.get("")
 async def get_user_collections(current_user: UserRead = Depends(get_current_user)):
-    """
-    Get all collections for the current user.
-    Requirement 6: Curated Collection Planner
-    """
     query = """
         SELECT
             c.collection_id,
@@ -50,17 +56,15 @@ async def create_collection(
     collection: CollectionCreate,
     current_user: UserRead = Depends(get_current_user),
 ):
-    """Create a new collection."""
     query = """
         INSERT INTO movie_collection (user_id, title, note, created_at)
         VALUES (%s, %s, %s, %s)
         RETURNING collection_id, user_id, title, note, created_at
     """
-    result = execute_returning(
+    return execute_returning(
         query,
         (current_user.id, collection.title, collection.note, datetime.utcnow())
     )
-    return result
 
 
 @router.get("/{collection_id}")
@@ -68,12 +72,7 @@ async def get_collection(
     collection_id: int,
     current_user: UserRead = Depends(get_current_user),
 ):
-    collection = execute_query_one(
-        "SELECT * FROM movie_collection WHERE collection_id = %s AND user_id = %s",
-        (collection_id, current_user.id)
-    )
-    if not collection:
-        raise HTTPException(status_code=404, detail="Collection not found")
+    collection = _verify_ownership(collection_id, current_user.id)
 
     query = """
         SELECT
@@ -81,7 +80,7 @@ async def get_collection(
             m.title,
             m.release_year,
             COALESCE(
-                (SELECT ROUND(AVG(rating)::numeric, 2) FROM rating WHERE movie_id = m.movie_id),
+                (SELECT ROUND(AVG(rating)::numeric, 1) FROM rating WHERE movie_id = m.movie_id),
                 0
             ) as avg_rating,
             ci.added_at,
@@ -101,22 +100,15 @@ async def get_collection(
         "movies": movies,
     }
 
+
 @router.put("/{collection_id}")
 async def update_collection(
     collection_id: int,
     updates: CollectionUpdate,
     current_user: UserRead = Depends(get_current_user),
 ):
-    """Update a collection's title or note."""
-    # Verify ownership
-    collection = execute_query_one(
-        "SELECT * FROM movie_collection WHERE collection_id = %s AND user_id = %s",
-        (collection_id, current_user.id)
-    )
-    if not collection:
-        raise HTTPException(status_code=404, detail="Collection not found")
+    collection = _verify_ownership(collection_id, current_user.id)
 
-    # Build update query
     update_fields = []
     params = []
 
@@ -146,13 +138,6 @@ async def delete_collection(
     collection_id: int,
     current_user: UserRead = Depends(get_current_user),
 ):
-    """Delete a collection."""
-    # Delete items first (cascade would handle this but being explicit)
-    execute_command(
-        "DELETE FROM collection_item WHERE collection_id = %s",
-        (collection_id,)
-    )
-
     rows = execute_command(
         "DELETE FROM movie_collection WHERE collection_id = %s AND user_id = %s",
         (collection_id, current_user.id)
@@ -168,19 +153,8 @@ async def add_movie_to_collection(
     item: CollectionItemAdd,
     current_user: UserRead = Depends(get_current_user),
 ):
-    """
-    Add a movie to a collection.
-    Requirement 6: As information is being viewed in the dashboard a film can be added to a planner list
-    """
-    # Verify collection ownership
-    collection = execute_query_one(
-        "SELECT * FROM movie_collection WHERE collection_id = %s AND user_id = %s",
-        (collection_id, current_user.id)
-    )
-    if not collection:
-        raise HTTPException(status_code=404, detail="Collection not found")
+    _verify_ownership(collection_id, current_user.id)
 
-    # Verify movie exists
     movie = execute_query_one(
         "SELECT movie_id FROM movie WHERE movie_id = %s",
         (item.movie_id,)
@@ -188,7 +162,6 @@ async def add_movie_to_collection(
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
 
-    # Check if already in collection
     existing = execute_query_one(
         "SELECT * FROM collection_item WHERE collection_id = %s AND movie_id = %s",
         (collection_id, item.movie_id)
@@ -210,14 +183,7 @@ async def remove_movie_from_collection(
     movie_id: int,
     current_user: UserRead = Depends(get_current_user),
 ):
-    """Remove a movie from a collection."""
-    # Verify collection ownership
-    collection = execute_query_one(
-        "SELECT * FROM movie_collection WHERE collection_id = %s AND user_id = %s",
-        (collection_id, current_user.id)
-    )
-    if not collection:
-        raise HTTPException(status_code=404, detail="Collection not found")
+    _verify_ownership(collection_id, current_user.id)
 
     rows = execute_command(
         "DELETE FROM collection_item WHERE collection_id = %s AND movie_id = %s",
