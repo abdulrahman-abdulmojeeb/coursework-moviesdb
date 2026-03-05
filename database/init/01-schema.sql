@@ -5,7 +5,7 @@
 -- Core Tables (MovieLens Data)
 -- ============================================
 
--- Movie table
+-- Movie table. 
 CREATE TABLE IF NOT EXISTS movie (
     movie_id INTEGER PRIMARY KEY,
     title VARCHAR(500) NOT NULL,
@@ -31,9 +31,9 @@ CREATE TABLE IF NOT EXISTS movie_genre (
     PRIMARY KEY (movie_id, genre_id)
 );
 
-COMMENT ON TABLE movie_genre IS 'Many-to-many relationship between movies and genres';
+COMMENT ON TABLE movie_genre IS 'Many-to-many relationship between movie and genre';
 
--- ML user table (MovieLens users who provide ratings)
+-- User table (MovieLens users who provide ratings)
 CREATE TABLE IF NOT EXISTS ml_user (
     user_id INTEGER PRIMARY KEY,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -51,18 +51,18 @@ CREATE TABLE IF NOT EXISTS rating (
     UNIQUE (user_id, movie_id)
 );
 
-COMMENT ON TABLE rating IS 'User ratings for movies (0.5-5.0 scale)';
+COMMENT ON TABLE rating IS 'User ratings for movie (0.5-5.0 scale)';
 
 -- Tag table
 CREATE TABLE IF NOT EXISTS tag (
     tag_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES ml_user(user_id) ON DELETE CASCADE,
-    movie_id INTEGER NOT NULL REFERENCES movie(movie_id) ON DELETE CASCADE,
+    movie_id INTEGER NOT NULL REFERENCES movie (movie_id) ON DELETE CASCADE,
     tag_text VARCHAR(500) NOT NULL,
     timestamp BIGINT NOT NULL
 );
 
-COMMENT ON TABLE tag IS 'User-generated tags for movies';
+COMMENT ON TABLE tag IS 'User-generated tags for movie';
 
 -- ============================================
 -- Personality Data Tables (Requirement 5)
@@ -80,11 +80,13 @@ CREATE TABLE IF NOT EXISTS personality_user (
 
 COMMENT ON TABLE personality_user IS 'Big Five personality traits for users (Requirement 5)';
 
+
+
 -- ============================================
 -- Application User Tables (Requirement 6)
 -- ============================================
 
--- Application ml_user (for collection feature - separate from MovieLens users)
+-- Application users (for collection feature - separate from MovieLens users)
 CREATE TABLE IF NOT EXISTS app_user (
     user_id SERIAL PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
@@ -94,7 +96,7 @@ CREATE TABLE IF NOT EXISTS app_user (
     is_active BOOLEAN DEFAULT TRUE
 );
 
-COMMENT ON TABLE app_user IS 'Application ml_user for the collection planner feature';
+COMMENT ON TABLE app_user IS 'Application users for the collection planner feature';
 
 -- Personality traits for app users
 CREATE TABLE IF NOT EXISTS personality_app_user (
@@ -106,7 +108,7 @@ CREATE TABLE IF NOT EXISTS personality_app_user (
     extraversion DECIMAL(4,2) CHECK (extraversion >= 1.0 AND extraversion <= 5.0)
 );
 
--- App user ratings table
+-- App user rating table
 CREATE TABLE IF NOT EXISTS app_user_rating (
     rating_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES app_user(user_id) ON DELETE CASCADE,
@@ -116,7 +118,7 @@ CREATE TABLE IF NOT EXISTS app_user_rating (
     UNIQUE (user_id, movie_id)
 );
 
--- Movie Collection (curated lists of movies)
+-- Collection (curated lists of movie)
 CREATE TABLE IF NOT EXISTS movie_collection (
     collection_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES app_user(user_id) ON DELETE CASCADE,
@@ -127,7 +129,7 @@ CREATE TABLE IF NOT EXISTS movie_collection (
 
 COMMENT ON TABLE movie_collection IS 'User-created movie collection lists (Requirement 6)';
 
--- Collection items (movies in a collection)
+-- Collection items (movie in a collection)
 CREATE TABLE IF NOT EXISTS collection_item (
     item_id SERIAL PRIMARY KEY,
     collection_id INTEGER NOT NULL REFERENCES movie_collection(collection_id) ON DELETE CASCADE,
@@ -136,7 +138,7 @@ CREATE TABLE IF NOT EXISTS collection_item (
     UNIQUE (collection_id, movie_id)
 );
 
-COMMENT ON TABLE collection_item IS 'Movies added to collections';
+COMMENT ON TABLE collection_item IS 'Movie added to collections';
 
 -- ============================================
 -- Optional Enhancement Tables
@@ -172,6 +174,6 @@ COMMENT ON TABLE link IS 'External movie database identifiers';
 
 -- Data integrity notes:
 -- ratings.rating: CHECK (rating >= 0.5 AND rating <= 5.0) enforces MovieLens scale
--- app_user_rating.rating: same CHECK constraint for application ml_user
+-- app_user_ratings.rating: same CHECK constraint for application users
 -- All FK columns are NOT NULL to prevent orphaned associations
 -- UNIQUE(user_id, movie_id) on rating prevents duplicate ratings per user
