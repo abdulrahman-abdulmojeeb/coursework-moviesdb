@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { moviesApi, predictionsApi } from "../services/api"
-import type { Movie, MovieRatingsResponse } from "../types"
+import type { Movie, MovieRatingsResponse, SimilarMoviesResponse } from "../types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,25 +25,36 @@ import {
   ExternalLink,
   Film,
   Award,
-  Plus, 
+  Plus,
   Check
 } from "lucide-react"
-import { collectionsApi } from "../services/api";
+import { collectionsApi, appRatingsApi } from "../services/api";
+import { formatNumber, formatRuntime, isLoggedIn } from "@/lib/utils"
 
-interface SimilarMovie {
-  movie_id: number
-  title: string
-  release_year: number | null
-  poster_url: string | null
-  matching_genres: number
-  genre_similarity_pct: number
-  avg_rating: number | null
-  rating_count: number
-}
+const scoreColor = (pct: number, prefix: "bg" | "text" = "text") =>
+  pct >= 70 ? `${prefix}-green-500` : pct >= 50 ? `${prefix}-yellow-500` : `${prefix}-red-500`
 
-interface SimilarMoviesResponse {
-  source_movie: { movie_id: number; title: string }
-  similar_movies: SimilarMovie[]
+function RatingBar({ label, score, maxScore, suffix, extra }: {
+  label: string; score: number; maxScore: number; suffix: string; extra?: React.ReactNode
+}) {
+  const pct = (score / maxScore) * 100
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between items-center text-sm">
+        <span className="font-medium w-24">{label}</span>
+        <div className="flex-1 mx-3">
+          <div className="h-3 bg-muted rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${scoreColor(pct, "bg")}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+        <span className={`font-semibold w-16 text-right ${scoreColor(pct)}`}>{suffix}</span>
+        {extra && <span className="text-xs w-24 text-right">{extra}</span>}
+      </div>
+    </div>
+  )
 }
 
 export default function MovieDetail() {
@@ -84,78 +95,23 @@ export default function MovieDetail() {
     },
   })
 
-  const formatRuntime = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
-  }
-
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1_000_000_000) {
-      return `$${(amount / 1_000_000_000).toFixed(1)}B`
-    }
-    if (amount >= 1_000_000) {
-      return `$${(amount / 1_000_000).toFixed(1)}M`
-    }
-    if (amount >= 1_000) {
-      return `$${(amount / 1_000).toFixed(1)}K`
-    }
-    return `$${amount.toLocaleString()}`
-  }
-
-  // Color for 1-10 scale ratings (TMDB/IMDb)
-  const getRatingColor = (rating: number) => {
-    if (rating >= 7) return "text-green-500"
-    if (rating >= 5) return "text-yellow-500"
-    return "text-red-500"
-  }
-
-  // Normalize all ratings to 0-100 scale for visualization
-  const normalizeRating = (value: number, maxValue: number): number => {
-    return (value / maxValue) * 100
-  }
-
-  // Get color based on normalized score (0-100)
-  const getScoreColor = (score: number): string => {
-    if (score >= 70) return "bg-green-500"
-    if (score >= 50) return "bg-yellow-500"
-    return "bg-red-500"
-  }
-
-  const getScoreTextColor = (score: number): string => {
-    if (score >= 70) return "text-green-500"
-    if (score >= 50) return "text-yellow-500"
-    return "text-red-500"
-  }
-
-  // Calculate consensus score from all available ratings
-  // Uses equal weighting for each source to get a true consensus
   const calculateConsensusScore = (): { score: number; count: number } | null => {
     if (!movie) return null
 
     const ratings: number[] = []
 
-    // MovieLens (0.5-5 scale -> 0-10)
     if (movie.avg_rating && movie.rating_count >= 10) {
       ratings.push(movie.avg_rating * 2)
     }
-
-    // IMDb (already 1-10)
     if (movie.imdb_rating) {
       ratings.push(movie.imdb_rating)
     }
-
-    // TMDB (already 1-10)
     if (movie.vote_average && movie.vote_count && movie.vote_count >= 10) {
       ratings.push(movie.vote_average)
     }
-
-    // Rotten Tomatoes (0-100 -> 0-10)
     if (movie.rotten_tomatoes_score !== null && movie.rotten_tomatoes_score !== undefined) {
       ratings.push(movie.rotten_tomatoes_score / 10)
     }
-
-    // Metacritic (0-100 -> 0-10)
     if (movie.metacritic_score !== null && movie.metacritic_score !== undefined) {
       ratings.push(movie.metacritic_score / 10)
     }
@@ -163,11 +119,9 @@ export default function MovieDetail() {
     if (ratings.length === 0) return null
 
     const score = ratings.reduce((sum, r) => sum + r, 0) / ratings.length
-
     return { score, count: ratings.length }
   }
 
-  // Get verdict text based on consensus score
   const getConsensusVerdict = (score: number): string => {
     if (score >= 8) return "Universal Acclaim"
     if (score >= 7) return "Generally Favorable"
@@ -175,16 +129,22 @@ export default function MovieDetail() {
     return "Generally Unfavorable"
   }
 
-  // Format vote count for display
-  const formatVoteCount = (count: number): string => {
-    if (count >= 1_000_000) {
-      return `${(count / 1_000_000).toFixed(1)}M`
-    }
-    if (count >= 1_000) {
-      return `${(count / 1_000).toFixed(1)}K`
-    }
-    return count.toLocaleString()
-  }
+  const { data: myRating, refetch: refetchMyRating } = useQuery({
+    queryKey: ["my-rating", movieId],
+    queryFn: () => appRatingsApi.getForMovie(movieId).then(res => res.data),
+    enabled: movieId > 0 && isLoggedIn(),
+    retry: false,
+  })
+
+  const ratingMutation = useMutation({
+    mutationFn: (rating: number) => appRatingsApi.addOrUpdate(movieId, rating),
+    onSuccess: () => refetchMyRating(),
+  })
+
+  const deleteRatingMutation = useMutation({
+    mutationFn: () => appRatingsApi.delete(movieId),
+    onSuccess: () => refetchMyRating(),
+  })
 
   if (isLoading) {
     return (
@@ -220,7 +180,6 @@ export default function MovieDetail() {
 
   return (
     <div className="space-y-6">
-      {/* Hero Section with Backdrop */}
       <div className="relative">
         {movie.backdrop_url ? (
           <div className="absolute inset-0 h-48 sm:h-64 overflow-hidden rounded-lg">
@@ -242,7 +201,6 @@ export default function MovieDetail() {
           </Button>
 
           <div className="flex flex-col md:flex-row gap-6">
-            {/* Poster */}
             <div className="flex-shrink-0 mx-auto md:mx-0">
               {movie.poster_url ? (
                 <img
@@ -257,7 +215,6 @@ export default function MovieDetail() {
               )}
             </div>
 
-            {/* Movie Info */}
             <div className="flex-1 space-y-4 text-center md:text-left">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold">
@@ -272,8 +229,8 @@ export default function MovieDetail() {
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-2 text-sm text-muted-foreground">
                   {(movie.vote_average || movie.imdb_rating) && (
                     <div className="flex items-center gap-1">
-                      <Star className={`h-4 w-4 ${getRatingColor(movie.vote_average ?? movie.imdb_rating ?? 0)}`} />
-                      <span className={getRatingColor(movie.vote_average ?? movie.imdb_rating ?? 0)}>
+                      <Star className={`h-4 w-4 ${scoreColor((movie.vote_average ?? movie.imdb_rating ?? 0) * 10)}`} />
+                      <span className={scoreColor((movie.vote_average ?? movie.imdb_rating ?? 0) * 10)}>
                         {(movie.vote_average ?? movie.imdb_rating)?.toFixed(1)}/10
                       </span>
                       <span className="text-xs">
@@ -295,7 +252,6 @@ export default function MovieDetail() {
                 </div>
               </div>
 
-              {/* Genres */}
               <div className="flex flex-wrap justify-center md:justify-start gap-2">
                 {movie.genres.map((genre) => (
                   <Badge key={genre} variant="secondary">
@@ -303,6 +259,38 @@ export default function MovieDetail() {
                   </Badge>
                 ))}
               </div>
+
+              {isLoggedIn() && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Your Rating:</span>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => ratingMutation.mutate(star)}
+                        disabled={ratingMutation.isPending}
+                        className="focus:outline-none"
+                      >
+                        <Star
+                          className={`h-6 w-6 transition-colors ${
+                            myRating && myRating.rating >= star
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-muted-foreground hover:text-yellow-400"
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  {myRating && (
+                    <button
+                      onClick={() => deleteRatingMutation.mutate()}
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors ml-1"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              )}
 
               {collectionsData && collectionsData.length > 0 && (
                 <DropdownMenu>
@@ -333,9 +321,6 @@ export default function MovieDetail() {
                 </DropdownMenu>
               )}
 
-
-
-              {/* Overview */}
               {movie.overview && (
                 <div>
                   <h3 className="font-semibold mb-1">Overview</h3>
@@ -343,7 +328,6 @@ export default function MovieDetail() {
                 </div>
               )}
 
-              {/* Credits */}
               <div className="space-y-1 text-sm">
                 {movie.director && (
                   <p>
@@ -369,9 +353,7 @@ export default function MovieDetail() {
         </div>
       </div>
 
-      {/* Ratings & TMDB Data - Side by side on larger screens */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Unified Ratings & Statistics Card */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -381,125 +363,58 @@ export default function MovieDetail() {
             <p className="text-xs text-muted-foreground">Aggregated from multiple sources</p>
           </CardHeader>
           <CardContent className="space-y-6">
-          {/* Rating Comparison Bars */}
           <div className="space-y-3">
-            {/* MovieLens */}
             {movie.avg_rating && (
-              <div className="space-y-1">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="font-medium w-24">MovieLens</span>
-                  <div className="flex-1 mx-3">
-                    <div className="h-3 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${getScoreColor(normalizeRating(movie.avg_rating, 5))}`}
-                        style={{ width: `${normalizeRating(movie.avg_rating, 5)}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className={`font-semibold w-16 text-right ${getScoreTextColor(normalizeRating(movie.avg_rating, 5))}`}>
-                    {movie.avg_rating.toFixed(1)}/5
-                  </span>
-                  <span className="text-muted-foreground text-xs w-24 text-right">
-                    ({formatVoteCount(movie.rating_count)} ratings)
-                  </span>
-                </div>
-              </div>
+              <RatingBar
+                label="MovieLens"
+                score={movie.avg_rating}
+                maxScore={5}
+                suffix={`${movie.avg_rating.toFixed(1)}/5`}
+                extra={<span className="text-muted-foreground">({formatNumber(movie.rating_count)} ratings)</span>}
+              />
             )}
 
-            {/* IMDb */}
             {movie.imdb_rating && (
-              <div className="space-y-1">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="font-medium w-24">IMDb</span>
-                  <div className="flex-1 mx-3">
-                    <div className="h-3 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${getScoreColor(normalizeRating(movie.imdb_rating, 10))}`}
-                        style={{ width: `${normalizeRating(movie.imdb_rating, 10)}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className={`font-semibold w-16 text-right ${getScoreTextColor(normalizeRating(movie.imdb_rating, 10))}`}>
-                    {movie.imdb_rating.toFixed(1)}/10
-                  </span>
-                  <span className="text-muted-foreground text-xs w-24 text-right">
-                    ({movie.imdb_votes ? formatVoteCount(movie.imdb_votes) + " votes" : ""})
-                  </span>
-                </div>
-              </div>
+              <RatingBar
+                label="IMDb"
+                score={movie.imdb_rating}
+                maxScore={10}
+                suffix={`${movie.imdb_rating.toFixed(1)}/10`}
+                extra={<span className="text-muted-foreground">{movie.imdb_votes ? `(${formatNumber(movie.imdb_votes)} votes)` : ""}</span>}
+              />
             )}
 
-            {/* TMDB */}
             {movie.vote_average !== null && movie.vote_average !== undefined && (
-              <div className="space-y-1">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="font-medium w-24">TMDB</span>
-                  <div className="flex-1 mx-3">
-                    <div className="h-3 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${getScoreColor(normalizeRating(movie.vote_average, 10))}`}
-                        style={{ width: `${normalizeRating(movie.vote_average, 10)}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className={`font-semibold w-16 text-right ${getScoreTextColor(normalizeRating(movie.vote_average, 10))}`}>
-                    {movie.vote_average.toFixed(1)}/10
-                  </span>
-                  <span className="text-muted-foreground text-xs w-24 text-right">
-                    ({movie.vote_count ? formatVoteCount(movie.vote_count) + " votes" : ""})
-                  </span>
-                </div>
-              </div>
+              <RatingBar
+                label="TMDB"
+                score={movie.vote_average}
+                maxScore={10}
+                suffix={`${movie.vote_average.toFixed(1)}/10`}
+                extra={<span className="text-muted-foreground">{movie.vote_count ? `(${formatNumber(movie.vote_count)} votes)` : ""}</span>}
+              />
             )}
 
-            {/* Rotten Tomatoes */}
             {movie.rotten_tomatoes_score !== null && movie.rotten_tomatoes_score !== undefined && (
-              <div className="space-y-1">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="font-medium w-24">RT Critics</span>
-                  <div className="flex-1 mx-3">
-                    <div className="h-3 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${getScoreColor(movie.rotten_tomatoes_score)}`}
-                        style={{ width: `${movie.rotten_tomatoes_score}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className={`font-semibold w-16 text-right ${getScoreTextColor(movie.rotten_tomatoes_score)}`}>
-                    {movie.rotten_tomatoes_score}%
-                  </span>
-                  <span className={`text-xs w-24 text-right ${movie.rotten_tomatoes_score >= 60 ? "text-green-500" : "text-red-500"}`}>
-                    {movie.rotten_tomatoes_score >= 60 ? "Fresh" : "Rotten"}
-                  </span>
-                </div>
-              </div>
+              <RatingBar
+                label="RT Critics"
+                score={movie.rotten_tomatoes_score}
+                maxScore={100}
+                suffix={`${movie.rotten_tomatoes_score}%`}
+                extra={<span className={movie.rotten_tomatoes_score >= 60 ? "text-green-500" : "text-red-500"}>{movie.rotten_tomatoes_score >= 60 ? "Fresh" : "Rotten"}</span>}
+              />
             )}
 
-            {/* Metacritic */}
             {movie.metacritic_score !== null && movie.metacritic_score !== undefined && (
-              <div className="space-y-1">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="font-medium w-24">Metacritic</span>
-                  <div className="flex-1 mx-3">
-                    <div className="h-3 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${getScoreColor(movie.metacritic_score)}`}
-                        style={{ width: `${movie.metacritic_score}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className={`font-semibold w-16 text-right ${getScoreTextColor(movie.metacritic_score)}`}>
-                    {movie.metacritic_score}
-                  </span>
-                  <span className={`text-xs w-24 text-right ${movie.metacritic_score >= 61 ? "text-green-500" : movie.metacritic_score >= 40 ? "text-yellow-500" : "text-red-500"}`}>
-                    {movie.metacritic_score >= 61 ? "Favorable" : movie.metacritic_score >= 40 ? "Mixed" : "Unfavorable"}
-                  </span>
-                </div>
-              </div>
+              <RatingBar
+                label="Metacritic"
+                score={movie.metacritic_score}
+                maxScore={100}
+                suffix={`${movie.metacritic_score}`}
+                extra={<span className={movie.metacritic_score >= 61 ? "text-green-500" : movie.metacritic_score >= 40 ? "text-yellow-500" : "text-red-500"}>{movie.metacritic_score >= 61 ? "Favorable" : movie.metacritic_score >= 40 ? "Mixed" : "Unfavorable"}</span>}
+              />
             )}
           </div>
 
-          {/* Footer with Consensus Score and Stats */}
           {(() => {
             const consensus = calculateConsensusScore()
             const hasStdDev = ratingsData?.stats?.stddev
@@ -509,10 +424,10 @@ export default function MovieDetail() {
                 {consensus && (
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Consensus:</span>
-                    <span className={`font-bold text-lg ${getScoreTextColor(consensus.score * 10)}`}>
+                    <span className={`font-bold text-lg ${scoreColor(consensus.score * 10)}`}>
                       {consensus.score.toFixed(1)}/10
                     </span>
-                    <span className={`text-xs ${getScoreTextColor(consensus.score * 10)}`}>
+                    <span className={`text-xs ${scoreColor(consensus.score * 10)}`}>
                       ({getConsensusVerdict(consensus.score)})
                     </span>
                   </div>
@@ -530,7 +445,6 @@ export default function MovieDetail() {
         </CardContent>
       </Card>
 
-      {/* TMDB Data */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -547,7 +461,7 @@ export default function MovieDetail() {
                   <DollarSign className="h-4 w-4" />
                   Budget
                 </span>
-                <span className="font-medium">{formatCurrency(movie.budget)}</span>
+                <span className="font-medium">{formatNumber(movie.budget, "$")}</span>
               </div>
             )}
             {movie.revenue !== null && movie.revenue !== undefined && movie.revenue > 0 && (
@@ -556,7 +470,7 @@ export default function MovieDetail() {
                   <DollarSign className="h-4 w-4" />
                   Revenue
                 </span>
-                <span className="font-medium">{formatCurrency(movie.revenue)}</span>
+                <span className="font-medium">{formatNumber(movie.revenue, "$")}</span>
               </div>
             )}
             {movie.vote_average !== null && movie.vote_average !== undefined && (
@@ -591,7 +505,6 @@ export default function MovieDetail() {
       </Card>
       </div>
 
-      {/* User Tags */}
       {movie.tags && movie.tags.length > 0 && (
         <Card>
           <CardHeader>
@@ -609,7 +522,6 @@ export default function MovieDetail() {
         </Card>
       )}
 
-      {/* Similar Movies */}
       {similarData && similarData.similar_movies.length > 0 && (
         <Card>
           <CardHeader>
@@ -659,7 +571,6 @@ export default function MovieDetail() {
         </Card>
       )}
 
-      {/* External Links */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">External Links</CardTitle>
