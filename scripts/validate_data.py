@@ -27,6 +27,33 @@ def validate_file(filepath, expected_cols):
         print(f"  OK: {os.path.basename(filepath)} ({row_count:,} rows)")
         return True
 
+import re
+
+MIN_MOVIE_YEAR = 1888  # earliest known film
+MAX_MOVIE_YEAR = 2030
+
+
+def validate_movie_years(filepath):
+    """Check that movie titles contain plausible release years."""
+    year_pattern = re.compile(r"\((\d{4})\)\s*$")
+    bad_years = 0
+    checked = 0
+    with open(filepath, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            match = year_pattern.search(row["title"])
+            if match:
+                year = int(match.group(1))
+                checked += 1
+                if year < MIN_MOVIE_YEAR or year > MAX_MOVIE_YEAR:
+                    bad_years += 1
+    if bad_years > 0:
+        print(f"  WARNING: {bad_years} movies with implausible years (of {checked} checked)")
+    else:
+        print(f"  OK: all {checked} movie years in range {MIN_MOVIE_YEAR}-{MAX_MOVIE_YEAR}")
+    return bad_years == 0
+
+
 def main():
     data_dir = sys.argv[1] if len(sys.argv) > 1 else "data/ml-latest-small"
     print(f"Validating MovieLens data in {data_dir}...")
@@ -39,6 +66,9 @@ def main():
             continue
         if not validate_file(path, cols):
             all_ok = False
+    movies_path = os.path.join(data_dir, "movies.csv")
+    if os.path.exists(movies_path):
+        validate_movie_years(movies_path)
     sys.exit(0 if all_ok else 1)
 
 if __name__ == "__main__":
