@@ -11,6 +11,7 @@ import {
   Layers,
   Menu,
   X,
+  Sparkles
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -24,6 +25,7 @@ const navItems = [
   { path: "/collections", label: "Collections", icon: FolderHeart, hoverAnim: "group-hover:scale-110" },
   { path: "/my-ratings", label: "My Ratings", icon: Star, hoverAnim: "group-hover:rotate-[20deg]" },
   { path: "/build", label: "Build Details", icon: Layers, hoverAnim: "group-hover:-translate-y-0.5" },
+  { path: "/recommendations", label: "For You", icon: Sparkles },
 ]
 
 export function Sidebar() {
@@ -32,7 +34,7 @@ export function Sidebar() {
 
   // Close mobile menu on route change
   useEffect(() => {
-    setMobileOpen(false) // eslint-disable-line react-hooks/set-state-in-effect -- valid pattern for closing menu on nav
+    setMobileOpen(false) // eslint-disable-line react-hooks/set-state-in-effect
   }, [location.pathname])
 
   return (
