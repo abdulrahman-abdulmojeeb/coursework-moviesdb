@@ -54,6 +54,39 @@ def validate_movie_years(filepath):
     return bad_years == 0
 
 
+PERSONALITY_TRAITS = ["openness", "agreeableness", "emotional_stability",
+                      "conscientiousness", "extraversion"]
+
+
+def validate_personality_completeness(filepath):
+    """Report completeness of personality trait data.
+
+    Checks each Big Five trait column for missing or empty values
+    and reports the percentage of complete records.
+    """
+    total = 0
+    missing_counts = {trait: 0 for trait in PERSONALITY_TRAITS}
+    with open(filepath, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            total += 1
+            for trait in PERSONALITY_TRAITS:
+                val = row.get(trait, "").strip()
+                if not val:
+                    missing_counts[trait] += 1
+
+    if total == 0:
+        print("  No personality records found")
+        return
+
+    print(f"  Personality data completeness ({total} records):")
+    for trait in PERSONALITY_TRAITS:
+        complete = total - missing_counts[trait]
+        pct = complete / total * 100
+        status = "OK" if pct == 100 else "GAPS"
+        print(f"    {trait}: {complete}/{total} ({pct:.1f}%) [{status}]")
+
+
 def main():
     data_dir = sys.argv[1] if len(sys.argv) > 1 else "data/ml-latest-small"
     print(f"Validating MovieLens data in {data_dir}...")
@@ -69,6 +102,9 @@ def main():
     movies_path = os.path.join(data_dir, "movies.csv")
     if os.path.exists(movies_path):
         validate_movie_years(movies_path)
+    personality_path = os.path.join(data_dir, "personality-data.csv")
+    if os.path.exists(personality_path):
+        validate_personality_completeness(personality_path)
     sys.exit(0 if all_ok else 1)
 
 if __name__ == "__main__":
