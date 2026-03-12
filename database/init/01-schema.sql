@@ -1,11 +1,5 @@
--- MovieLens Database Schema
--- COMP0022 Database and Information Systems Coursework
-
--- ============================================
 -- Core Tables (MovieLens Data)
--- ============================================
 
--- Movie table. 
 CREATE TABLE IF NOT EXISTS movie (
     movie_id INTEGER PRIMARY KEY,
     title VARCHAR(500) NOT NULL,
@@ -16,7 +10,6 @@ CREATE TABLE IF NOT EXISTS movie (
 
 COMMENT ON TABLE movie IS 'Core movie information from MovieLens dataset';
 
--- Genre table (normalized from pipe-separated genre string)
 CREATE TABLE IF NOT EXISTS genre (
     genre_id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE
@@ -33,7 +26,6 @@ CREATE TABLE IF NOT EXISTS movie_genre (
 
 COMMENT ON TABLE movie_genre IS 'Many-to-many relationship between movie and genre';
 
--- User table (MovieLens users who provide ratings)
 CREATE TABLE IF NOT EXISTS ml_user (
     user_id INTEGER PRIMARY KEY,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -41,7 +33,6 @@ CREATE TABLE IF NOT EXISTS ml_user (
 
 COMMENT ON TABLE ml_user IS 'MovieLens users who have provided ratings';
 
--- Rating table
 CREATE TABLE IF NOT EXISTS rating (
     rating_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES ml_user(user_id) ON DELETE CASCADE,
@@ -53,7 +44,6 @@ CREATE TABLE IF NOT EXISTS rating (
 
 COMMENT ON TABLE rating IS 'User ratings for movie (0.5-5.0 scale)';
 
--- Tag table
 CREATE TABLE IF NOT EXISTS tag (
     tag_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES ml_user(user_id) ON DELETE CASCADE,
@@ -64,11 +54,7 @@ CREATE TABLE IF NOT EXISTS tag (
 
 COMMENT ON TABLE tag IS 'User-generated tags for movie';
 
--- ============================================
 -- Personality Data Tables (Requirement 5)
--- ============================================
-
--- Personality traits for users (Big Five model)
 CREATE TABLE IF NOT EXISTS personality_user (
     user_id INTEGER PRIMARY KEY REFERENCES ml_user(user_id) ON DELETE CASCADE,
     openness DECIMAL(4,2) CHECK (openness >= 1.0 AND openness <= 5.0),
@@ -82,11 +68,7 @@ COMMENT ON TABLE personality_user IS 'Big Five personality traits for users (Req
 
 
 
--- ============================================
 -- Application User Tables (Requirement 6)
--- ============================================
-
--- Application users (for collection feature - separate from MovieLens users)
 CREATE TABLE IF NOT EXISTS app_user (
     user_id SERIAL PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
@@ -98,7 +80,7 @@ CREATE TABLE IF NOT EXISTS app_user (
 
 COMMENT ON TABLE app_user IS 'Application users for the collection planner feature';
 
--- Personality traits for app users
+-- Personality traits for *app* users (different from the movielens users provided in the csv)
 CREATE TABLE IF NOT EXISTS personality_app_user (
     user_id INTEGER PRIMARY KEY REFERENCES app_user(user_id) ON DELETE CASCADE,
     openness DECIMAL(4,2) CHECK (openness >= 1.0 AND openness <= 5.0),
@@ -108,7 +90,7 @@ CREATE TABLE IF NOT EXISTS personality_app_user (
     extraversion DECIMAL(4,2) CHECK (extraversion >= 1.0 AND extraversion <= 5.0)
 );
 
--- App user rating table
+-- *App* user rating table (different from the movielens users provided in the csv)
 CREATE TABLE IF NOT EXISTS app_user_rating (
     rating_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES app_user(user_id) ON DELETE CASCADE,
@@ -139,10 +121,6 @@ CREATE TABLE IF NOT EXISTS collection_item (
 );
 
 COMMENT ON TABLE collection_item IS 'Movie added to collections';
-
--- ============================================
--- Optional Enhancement Tables
--- ============================================
 
 -- Extended movie details (from TMDB API)
 CREATE TABLE IF NOT EXISTS movie_detail (

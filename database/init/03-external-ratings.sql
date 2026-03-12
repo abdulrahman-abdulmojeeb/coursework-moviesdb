@@ -3,13 +3,13 @@
 
 CREATE TABLE IF NOT EXISTS external_ratings (
     movie_id INTEGER PRIMARY KEY REFERENCES movie(movie_id) ON DELETE CASCADE,
-    imdb_rating DECIMAL(3,1),        -- e.g., 8.7 (out of 10)
-    imdb_votes INTEGER,               -- e.g., 2500000
-    rotten_tomatoes_score INTEGER,    -- e.g., 93 (percentage, 0-100)
-    metacritic_score INTEGER,         -- e.g., 82 (0-100)
-    box_office VARCHAR(50),           -- e.g., "$28,341,469"
-    awards TEXT,                      -- e.g., "Won 7 Oscars. 96 wins & 81 nominations total."
-    rated VARCHAR(10),                -- e.g., "R", "PG-13", "PG"
+    imdb_rating DECIMAL(3,1),
+    imdb_votes INTEGER,
+    rotten_tomatoes_score INTEGER,
+    metacritic_score INTEGER,
+    box_office VARCHAR(50),
+    awards TEXT,
+    rated VARCHAR(10),
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -26,11 +26,3 @@ COMMENT ON COLUMN external_ratings.rated IS 'Content rating (G, PG, PG-13, R, et
 CREATE INDEX IF NOT EXISTS idx_external_ratings_imdb ON external_ratings(imdb_rating) WHERE imdb_rating IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_external_ratings_rt ON external_ratings(rotten_tomatoes_score) WHERE rotten_tomatoes_score IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_external_ratings_meta ON external_ratings(metacritic_score) WHERE metacritic_score IS NOT NULL;
-
--- Enrichment coverage validation query:
--- SELECT
---     (SELECT COUNT(*) FROM movie_detail) AS tmdb_enriched,
---     (SELECT COUNT(*) FROM external_ratings) AS omdb_enriched,
---     (SELECT COUNT(*) FROM movie) AS total_movies,
---     ROUND(100.0 * (SELECT COUNT(*) FROM movie_detail) / (SELECT COUNT(*) FROM movie), 1) AS tmdb_pct,
---     ROUND(100.0 * (SELECT COUNT(*) FROM external_ratings) / (SELECT COUNT(*) FROM movie), 1) AS omdb_pct;
