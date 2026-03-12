@@ -25,6 +25,9 @@ The database consists of 11 core tables organised into four groups:
 - **movie_collection** — User-created movie lists with public/private visibility
 - **collection_item** — Movies within collections, with optional notes
 
+### Entity Relationship Diagram
+![ER Diagram](../images/ER_diagram.png)
+
 ## Index Strategy
 
 30+ indexes are defined in `init/02-indexes.sql` covering:
