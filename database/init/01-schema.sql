@@ -163,17 +163,9 @@ CREATE TABLE IF NOT EXISTS movie_detail (
 
 COMMENT ON TABLE movie_detail IS 'Extended movie metadata from TMDB API';
 
--- Movie links (for external references)
-CREATE TABLE IF NOT EXISTS link (
-    movie_id INTEGER PRIMARY KEY REFERENCES movie(movie_id) ON DELETE CASCADE,
-    imdb_id VARCHAR(20),
-    tmdb_id INTEGER
-);
-
-COMMENT ON TABLE link IS 'External movie database identifiers';
 
 -- Data integrity notes:
 -- ratings.rating: CHECK (rating >= 0.5 AND rating <= 5.0) enforces MovieLens scale
--- app_user_ratings.rating: same CHECK constraint for application users
+-- app_user_rating.rating: same CHECK constraint for application users
 -- All FK columns are NOT NULL to prevent orphaned associations
 -- UNIQUE(user_id, movie_id) on rating prevents duplicate ratings per user
