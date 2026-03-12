@@ -5,6 +5,7 @@ from app.database import execute_query
 router = APIRouter()
 
 
+#only returns genres that have corresponding movies 
 @router.get("")
 async def get_genres():
     query = """
