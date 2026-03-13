@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { authApi } from "@/services/api"
 
 export default function Login() {
   const navigate = useNavigate()
@@ -28,47 +29,24 @@ export default function Login() {
     setLoading(true)
 
     if (mode === "register") {
-        const passwordError = validatePassword(password)
-        if (passwordError) {
-          setError(passwordError)
-          setLoading(false)
-          return
-        }
+      const passwordError = validatePassword(password)
+      if (passwordError) {
+        setError(passwordError)
+        setLoading(false)
+        return
       }
+    }
 
     try {
-      if (mode === "login") {
-        const res = await fetch("http://localhost:8000/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
-        })
-        const data = await res.json()
-        if (!res.ok) { setError(data.detail || "Login failed"); return }
-        localStorage.setItem("access_token", data.access_token)
-        localStorage.setItem("refresh_token", data.refresh_token)
-        navigate("/profile")
-
-      } else {
-        const res = await fetch("http://localhost:8000/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password, email: email || undefined, invite_token: inviteToken }),
-        })
-        const data = await res.json()
-        if (!res.ok) { setError(data.detail || "Registration failed"); return }
-        const loginRes = await fetch("http://localhost:8000/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
-        })
-        const loginData = await loginRes.json()
-        localStorage.setItem("access_token", loginData.access_token)
-        localStorage.setItem("refresh_token", loginData.refresh_token)
-        navigate("/profile")
+      if (mode === "register") {
+        await authApi.register(username, password, inviteToken, email || undefined)
       }
-    } catch (err) {
-      setError("Could not connect to server")
+      const { data } = await authApi.login(username, password)
+      localStorage.setItem("access_token", data.access_token)
+      localStorage.setItem("refresh_token", data.refresh_token)
+      navigate("/profile")
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Could not connect to server")
     } finally {
       setLoading(false)
     }
