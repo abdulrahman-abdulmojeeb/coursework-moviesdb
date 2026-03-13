@@ -14,7 +14,7 @@ export default function LoginRequired({ description }: { description?: string })
         </CardHeader>
         <CardContent>
           <Button asChild>
-            <Link to="/login">Login / Register</Link>
+            <Link to="/profile">Login / Register</Link>
           </Button>
         </CardContent>
       </Card>

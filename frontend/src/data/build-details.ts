@@ -111,7 +111,6 @@ export const stackSections: StackSection[] = [
       { name: "bcrypt", version: "N/A", description: "Adaptive password hashing algorithm with configurable work factor" },
       { name: "CORS", version: "N/A", description: "Cross-Origin Resource Sharing configuration for API security" },
       { name: "UFW Firewall", version: "N/A", description: "Uncomplicated Firewall for server-level network protection" },
-      { name: "Invite Token System", version: "N/A", description: "Registration protection requiring valid invite tokens for new accounts" },
     ],
   },
   {

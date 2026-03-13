@@ -103,17 +103,8 @@ async def get_current_user(
     return _user_read(user)
 
 
-VALID_INVITE_TOKENS = {"b89c7ef625663c6d6e7d4e76dedb6d3e"}
-
-
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate):
-    if user_data.invite_token not in VALID_INVITE_TOKENS:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid invite token",
-        )
-
     existing = user_db.get_user_by_username(user_data.username)
     if existing:
         raise HTTPException(

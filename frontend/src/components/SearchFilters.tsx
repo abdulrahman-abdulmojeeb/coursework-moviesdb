@@ -156,6 +156,7 @@ export default function SearchFilters({
                 <SelectItem value="title">Title</SelectItem>
                 <SelectItem value="year">Year</SelectItem>
                 <SelectItem value="rating">Rating</SelectItem>
+                <SelectItem value="weighted_rating">Weighted Rating</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -18,7 +18,7 @@ async def get_movies(
     year_from: Optional[int] = None,
     year_to: Optional[int] = None,
     min_rating: Optional[float] = Query(None, ge=0, le=5),
-    sort_by: str = Query("title", regex="^(title|year|rating)$"),
+    sort_by: str = Query("title", regex="^(title|year|rating|weighted_rating)$"),
     sort_order: str = Query("asc", regex="^(asc|desc)$"),
     director: Optional[str] = None,
 ):
@@ -70,6 +70,7 @@ async def get_movies(
         "title": "m.title",
         "year": "m.release_year",
         "rating": "avg_rating",
+        "weighted_rating": "weighted_rating",
     }
     order_by = f"{sort_field_map[sort_by]} {sort_order.upper()}"
 
@@ -88,7 +89,21 @@ async def get_movies(
             er.imdb_votes,
             COALESCE(AVG(r.rating), 0) as avg_rating,
             COUNT(r.rating_id) as rating_count,
-            ARRAY_AGG(DISTINCT g.name) FILTER (WHERE g.name IS NOT NULL) as genres
+            ARRAY_AGG(DISTINCT g.name) FILTER (WHERE g.name IS NOT NULL) as genres,
+            ROUND(CAST(
+              (CASE WHEN er.imdb_rating IS NOT NULL THEN 0.30 * er.imdb_rating / 2.0 ELSE 0 END
+             + CASE WHEN md.vote_average IS NOT NULL AND md.vote_count >= 5 THEN 0.25 * md.vote_average / 2.0 ELSE 0 END
+             + CASE WHEN er.rotten_tomatoes_score IS NOT NULL THEN 0.25 * er.rotten_tomatoes_score / 20.0 ELSE 0 END
+             + CASE WHEN AVG(r.rating) IS NOT NULL AND COUNT(r.rating_id) >= 5 THEN 0.10 * AVG(r.rating) ELSE 0 END
+             + CASE WHEN er.metacritic_score IS NOT NULL THEN 0.10 * er.metacritic_score / 20.0 ELSE 0 END)
+             / NULLIF(
+                CASE WHEN er.imdb_rating IS NOT NULL THEN 0.30 ELSE 0 END
+              + CASE WHEN md.vote_average IS NOT NULL AND md.vote_count >= 5 THEN 0.25 ELSE 0 END
+              + CASE WHEN er.rotten_tomatoes_score IS NOT NULL THEN 0.25 ELSE 0 END
+              + CASE WHEN AVG(r.rating) IS NOT NULL AND COUNT(r.rating_id) >= 5 THEN 0.10 ELSE 0 END
+              + CASE WHEN er.metacritic_score IS NOT NULL THEN 0.10 ELSE 0 END
+             , 0)
+            AS NUMERIC), 2) as weighted_rating
         FROM movie m
         LEFT JOIN movie_detail md ON m.movie_id = md.movie_id
         LEFT JOIN external_ratings er ON m.movie_id = er.movie_id
@@ -96,7 +111,7 @@ async def get_movies(
         LEFT JOIN movie_genre mg ON m.movie_id = mg.movie_id
         LEFT JOIN genre g ON mg.genre_id = g.genre_id
         WHERE {where_clause}
-        GROUP BY m.movie_id, md.poster_path, md.overview, md.vote_average, md.vote_count, er.imdb_rating, er.imdb_votes
+        GROUP BY m.movie_id, md.poster_path, md.overview, md.vote_average, md.vote_count, er.imdb_rating, er.imdb_votes, er.rotten_tomatoes_score, er.metacritic_score
         ORDER BY {order_by}
         LIMIT %s OFFSET %s
     """
@@ -188,7 +203,21 @@ async def get_movie(movie_id: int):
             COALESCE(AVG(r.rating), 0) as avg_rating,
             COUNT(r.rating_id) as rating_count,
             ARRAY_AGG(DISTINCT g.name) FILTER (WHERE g.name IS NOT NULL) as genres,
-            ARRAY_AGG(DISTINCT t.tag_text) FILTER (WHERE t.tag_text IS NOT NULL) as tags
+            ARRAY_AGG(DISTINCT t.tag_text) FILTER (WHERE t.tag_text IS NOT NULL) as tags,
+            ROUND(CAST(
+              (CASE WHEN er.imdb_rating IS NOT NULL THEN 0.30 * er.imdb_rating / 2.0 ELSE 0 END
+             + CASE WHEN md.vote_average IS NOT NULL AND md.vote_count >= 5 THEN 0.25 * md.vote_average / 2.0 ELSE 0 END
+             + CASE WHEN er.rotten_tomatoes_score IS NOT NULL THEN 0.25 * er.rotten_tomatoes_score / 20.0 ELSE 0 END
+             + CASE WHEN AVG(r.rating) IS NOT NULL AND COUNT(r.rating_id) >= 5 THEN 0.10 * AVG(r.rating) ELSE 0 END
+             + CASE WHEN er.metacritic_score IS NOT NULL THEN 0.10 * er.metacritic_score / 20.0 ELSE 0 END)
+             / NULLIF(
+                CASE WHEN er.imdb_rating IS NOT NULL THEN 0.30 ELSE 0 END
+              + CASE WHEN md.vote_average IS NOT NULL AND md.vote_count >= 5 THEN 0.25 ELSE 0 END
+              + CASE WHEN er.rotten_tomatoes_score IS NOT NULL THEN 0.25 ELSE 0 END
+              + CASE WHEN AVG(r.rating) IS NOT NULL AND COUNT(r.rating_id) >= 5 THEN 0.10 ELSE 0 END
+              + CASE WHEN er.metacritic_score IS NOT NULL THEN 0.10 ELSE 0 END
+             , 0)
+            AS NUMERIC), 2) as weighted_rating
         FROM movie m
         LEFT JOIN movie_detail md ON m.movie_id = md.movie_id
         LEFT JOIN external_ratings er ON m.movie_id = er.movie_id

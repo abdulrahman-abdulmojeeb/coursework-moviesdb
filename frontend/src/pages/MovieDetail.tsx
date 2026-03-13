@@ -26,8 +26,10 @@ import {
   Film,
   Award,
   Plus,
-  Check
+  Check,
+  Info
 } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { collectionsApi, appRatingsApi } from "../services/api";
 import { formatNumber, formatRuntime, isLoggedIn } from "@/lib/utils"
 
@@ -108,37 +110,10 @@ export default function MovieDetail() {
     },
   })
 
-  const calculateConsensusScore = (): { score: number; count: number } | null => {
-    if (!movie) return null
-
-    const ratings: number[] = []
-
-    if (movie.avg_rating && movie.rating_count >= 10) {
-      ratings.push(movie.avg_rating * 2)
-    }
-    if (movie.imdb_rating) {
-      ratings.push(movie.imdb_rating)
-    }
-    if (movie.vote_average && movie.vote_count && movie.vote_count >= 10) {
-      ratings.push(movie.vote_average)
-    }
-    if (movie.rotten_tomatoes_score !== null && movie.rotten_tomatoes_score !== undefined) {
-      ratings.push(movie.rotten_tomatoes_score / 10)
-    }
-    if (movie.metacritic_score !== null && movie.metacritic_score !== undefined) {
-      ratings.push(movie.metacritic_score / 10)
-    }
-
-    if (ratings.length === 0) return null
-
-    const score = ratings.reduce((sum, r) => sum + r, 0) / ratings.length
-    return { score, count: ratings.length }
-  }
-
-  const getConsensusVerdict = (score: number): string => {
-    if (score >= 8) return "Universal Acclaim"
-    if (score >= 7) return "Generally Favorable"
-    if (score >= 5) return "Mixed Reviews"
+  const getWeightedVerdict = (score: number): string => {
+    if (score >= 4.0) return "Universal Acclaim"
+    if (score >= 3.5) return "Generally Favorable"
+    if (score >= 2.5) return "Mixed Reviews"
     return "Generally Unfavorable"
   }
 
@@ -240,14 +215,14 @@ export default function MovieDetail() {
                 </h1>
 
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-2 text-sm text-muted-foreground">
-                  {(movie.vote_average || movie.imdb_rating) && (
+                  {movie.weighted_rating != null && (
                     <div className="flex items-center gap-1">
-                      <Star className={`h-4 w-4 ${scoreColor((movie.vote_average ?? movie.imdb_rating ?? 0) * 10)}`} />
-                      <span className={scoreColor((movie.vote_average ?? movie.imdb_rating ?? 0) * 10)}>
-                        {(movie.vote_average ?? movie.imdb_rating)?.toFixed(1)}/10
+                      <Star className={`h-4 w-4 ${scoreColor(movie.weighted_rating * 20)}`} />
+                      <span className={scoreColor(movie.weighted_rating * 20)}>
+                        {movie.weighted_rating.toFixed(1)}/5
                       </span>
                       <span className="text-xs">
-                        ({movie.vote_average ? "TMDB" : "IMDb"})
+                        (Weighted)
                       </span>
                     </div>
                   )}
@@ -376,6 +351,59 @@ export default function MovieDetail() {
             <p className="text-xs text-muted-foreground">Aggregated from multiple sources</p>
           </CardHeader>
           <CardContent className="space-y-6">
+          {movie.weighted_rating != null && (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-3">
+                <Star className={`h-6 w-6 fill-current ${scoreColor(movie.weighted_rating * 20)}`} />
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-2xl font-bold ${scoreColor(movie.weighted_rating * 20)}`}>
+                      {movie.weighted_rating.toFixed(2)}
+                    </span>
+                    <span className="text-sm text-muted-foreground">/5</span>
+                  </div>
+                  <span className={`text-xs ${scoreColor(movie.weighted_rating * 20)}`}>
+                    {getWeightedVerdict(movie.weighted_rating)}
+                  </span>
+                </div>
+              </div>
+              <TooltipProvider>
+                <Tooltip delayDuration={200}>
+                  <TooltipTrigger asChild>
+                    <button className="text-muted-foreground hover:text-foreground transition-colors p-1">
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="max-w-xs p-3">
+                    <p className="font-semibold mb-2">Weighted Rating</p>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Each source is normalized to a 0-5 scale and weighted by platform reliability. Missing sources have their weight redistributed.
+                    </p>
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-1">Source</th>
+                          <th className="text-right py-1">Weight</th>
+                          <th className="text-right py-1">Scale</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-muted-foreground">
+                        <tr><td className="py-0.5">IMDb</td><td className="text-right">30%</td><td className="text-right">/2</td></tr>
+                        <tr><td className="py-0.5">TMDB</td><td className="text-right">25%</td><td className="text-right">/2</td></tr>
+                        <tr><td className="py-0.5">Rotten Tomatoes</td><td className="text-right">25%</td><td className="text-right">/20</td></tr>
+                        <tr><td className="py-0.5">MovieLens</td><td className="text-right">10%</td><td className="text-right">as-is</td></tr>
+                        <tr><td className="py-0.5">Metacritic</td><td className="text-right">10%</td><td className="text-right">/20</td></tr>
+                      </tbody>
+                    </table>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      TMDB requires 5+ votes, MovieLens requires 5+ ratings to be included.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
+
           <div className="space-y-3">
             {movie.avg_rating && (
               <RatingBar
@@ -428,33 +456,13 @@ export default function MovieDetail() {
             )}
           </div>
 
-          {(() => {
-            const consensus = calculateConsensusScore()
-            const hasStdDev = ratingsData?.stats?.stddev
-            if (!consensus && !hasStdDev) return null
-            return (
-              <div className="pt-3 border-t flex flex-wrap items-center justify-between gap-3 text-sm">
-                {consensus && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Consensus:</span>
-                    <span className={`font-bold text-lg ${scoreColor(consensus.score * 10)}`}>
-                      {consensus.score.toFixed(1)}/10
-                    </span>
-                    <span className={`text-xs ${scoreColor(consensus.score * 10)}`}>
-                      ({getConsensusVerdict(consensus.score)})
-                    </span>
-                  </div>
-                )}
-                {hasStdDev && (
-                  <div className="flex items-center gap-1.5">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Std Dev:</span>
-                    <span className="font-medium">{ratingsData.stats.stddev?.toFixed(2)}</span>
-                  </div>
-                )}
-              </div>
-            )
-          })()}
+          {ratingsData?.stats?.stddev && (
+            <div className="pt-3 border-t flex items-center gap-1.5 text-sm">
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Std Dev:</span>
+              <span className="font-medium">{ratingsData.stats.stddev.toFixed(2)}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 

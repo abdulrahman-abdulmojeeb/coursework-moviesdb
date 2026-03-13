@@ -24,8 +24,7 @@ const navItems = [
   { path: "/personality", label: "Personality", icon: Brain, hoverAnim: "group-hover:scale-110" },
   { path: "/collections", label: "Collections", icon: FolderHeart, hoverAnim: "group-hover:scale-110" },
   { path: "/my-ratings", label: "My Ratings", icon: Star, hoverAnim: "group-hover:rotate-[20deg]" },
-  { path: "/build", label: "Build Details", icon: Layers, hoverAnim: "group-hover:-translate-y-0.5" },
-  { path: "/recommendations", label: "For You", icon: Sparkles },
+  { path: "/recommendations", label: "For You", icon: Sparkles, hoverAnim: "group-hover:scale-110 group-hover:rotate-12" },
 ]
 
 export function Sidebar() {
@@ -101,6 +100,7 @@ export function Sidebar() {
         {/* Bottom section */}
         <div className="space-y-1 p-2">
           <NavItem path="/profile" label="Profile" icon={User} hoverAnim="group-hover:-translate-y-0.5" />
+          <NavItem path="/build" label="Build Details" icon={Layers} hoverAnim="group-hover:-translate-y-0.5" />
         </div>
       </aside>
     </>

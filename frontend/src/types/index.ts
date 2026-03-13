@@ -29,6 +29,7 @@ export interface Movie {
   box_office?: string | null
   awards?: string | null
   rated?: string | null
+  weighted_rating?: number | null
 }
 
 export interface MovieRatingsResponse {

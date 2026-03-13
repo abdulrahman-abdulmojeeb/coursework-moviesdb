@@ -122,8 +122,8 @@ export const collectionsApi = {
 export const authApi = {
   login: (username: string, password: string) =>
     api.post('/auth/login', { username, password }),
-  register: (username: string, password: string, inviteToken: string, email?: string) =>
-    api.post('/auth/register', { username, password, invite_token: inviteToken, email }),
+  register: (username: string, password: string, email?: string) =>
+    api.post('/auth/register', { username, password, email }),
   refresh: () => api.post('/auth/refresh'),
   getMe: () => api.get('/auth/me'),
 }

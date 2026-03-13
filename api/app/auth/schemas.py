@@ -10,7 +10,6 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    invite_token: str
 
 
 class UserRead(UserBase):

@@ -40,7 +40,6 @@ function LoginContent() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [email, setEmail] = useState("")
-  const [inviteToken, setInviteToken] = useState("")
   const [error, setError] = useState("")
 
   const loginMutation = useMutation({
@@ -57,17 +56,12 @@ function LoginContent() {
 
   const registerMutation = useMutation({
     mutationFn: () =>
-      authApi.register(username, password, inviteToken, email || undefined),
+      authApi.register(username, password, email || undefined),
     onSuccess: () => {
       loginMutation.mutate()
     },
-    onError: (err: unknown) => {
-      const axiosError = err as { response?: { status?: number } }
-      if (axiosError.response?.status === 403) {
-        setError("Invalid invite token")
-      } else {
-        setError("Registration failed. Username may already exist.")
-      }
+    onError: () => {
+      setError("Registration failed. Username may already exist.")
     },
   })
 
@@ -115,17 +109,6 @@ function LoginContent() {
 
           {isRegister && (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="inviteToken">Invite Token</Label>
-                <Input
-                  id="inviteToken"
-                  type="text"
-                  value={inviteToken}
-                  onChange={(e) => setInviteToken(e.target.value)}
-                  required
-                  placeholder="Enter your invite token"
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email (optional)</Label>
                 <Input

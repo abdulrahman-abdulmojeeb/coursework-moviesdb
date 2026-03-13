@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { Plus, Film } from "lucide-react"
+import { Plus, Film, Star } from "lucide-react"
 import type { Movie } from "../types"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,15 +12,13 @@ interface MovieCardProps {
 }
 
 export default function MovieCard({ movie, onAddToCollection }: MovieCardProps) {
-  // Prefer TMDB rating, fallback to IMDb
-  const displayRating = movie.vote_average ?? movie.imdb_rating
-  const ratingSource = movie.vote_average ? "TMDB" : movie.imdb_rating ? "IMDb" : null
+  const rating = movie.weighted_rating
 
-  // Color thresholds for 1-10 scale
-  const ratingColor = displayRating
-    ? displayRating >= 7
+  // Color thresholds for 0-5 scale
+  const ratingColor = rating
+    ? rating >= 3.5
       ? "text-green-600 dark:text-green-400"
-      : displayRating >= 5
+      : rating >= 2.5
         ? "text-yellow-600 dark:text-yellow-400"
         : "text-red-600 dark:text-red-400"
     : "text-muted-foreground"
@@ -75,11 +73,9 @@ export default function MovieCard({ movie, onAddToCollection }: MovieCardProps) 
 
           <div className="flex items-center justify-between mt-auto pt-2">
             <div className="flex items-center gap-1">
-              {ratingSource && (
-                <span className="text-xs text-muted-foreground">{ratingSource}:</span>
-              )}
+              <Star className="h-3.5 w-3.5 text-yellow-500" />
               <span className={cn("font-bold text-sm", ratingColor)}>
-                {displayRating ? `${displayRating.toFixed(1)}/10` : "N/A"}
+                {rating ? `${rating.toFixed(1)}/5` : "N/A"}
               </span>
             </div>
 
