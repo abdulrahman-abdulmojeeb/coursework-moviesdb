@@ -76,27 +76,28 @@ export default function RatingPatterns() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-        {patterns && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Average User Ratings by Genre</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 sm:h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={patterns} layout="vertical" margin={{ left: 60, right: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" domain={[0, 5]} />
-                    <YAxis type="category" dataKey="genre" width={80} />
-                    <Tooltip />
-                    <Bar dataKey="mean_user_avg" fill="var(--primary)" name="Mean Rating" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+    {patterns && (
+      <Card>
+        <CardHeader>
+          <CardTitle>Average User Ratings by Genre</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div style={{ height: `${patterns.length * 25 + 60}px` }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={patterns} layout="vertical" margin={{ left: 80, right: 20, top: 20, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" domain={[0, 5]} />
+                <YAxis type="category" dataKey="genre" width={80} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="mean_user_avg" fill="var(--primary)" name="Mean Rating" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+    )}
+
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
 
         {lowRaters && (
           <Card>
