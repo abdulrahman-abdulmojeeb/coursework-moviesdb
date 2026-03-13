@@ -354,7 +354,7 @@ def main():
         print(f"Detected MovieLens subfolder: {effective_data_dir}")
 
     print(f"MovieLens Data Loader")
-    print(f"Data directory: {args.data_dir}")
+    print(f"Data directory: {effective_data_dir}")
     if args.step:
         print(f"Step: {args.step}")
     print(f"Started at: {datetime.now()}")
