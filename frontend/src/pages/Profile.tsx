@@ -146,7 +146,6 @@ function LoginContent() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
             />
           </div>
 
@@ -334,8 +333,21 @@ export default function Profile() {
         </TabsList>
 
         <TabsContent value="account">
-          {isLoggedIn() ? <LoggedInContent /> : <LoginContent />}
+          {isLoggedIn() ? <LoggedInContent /> : (
+            <Card className="max-w-md mx-auto">
+              <CardHeader>
+                <CardTitle>Not logged in</CardTitle>
+                <CardDescription>You need to log in to view your profile</CardDescription>
+              </CardHeader>
+            <CardContent>
+              <Button asChild className="w-full">
+                  <a href="/login">Go to Login</a>
+              </Button>
+            </CardContent>
+            </Card>
+            )}
         </TabsContent>
+        
 
         <TabsContent value="settings">
           <SettingsContent />

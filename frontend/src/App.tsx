@@ -11,6 +11,7 @@ import MyRatings from './pages/MyRatings'
 import Profile from './pages/Profile'
 import BuildDetails from './pages/BuildDetails'
 import Recommendations from './pages/Recommendations'
+import Login from './pages/Login' 
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <main id="main-content" className="flex-1 overflow-auto p-3 pt-16 sm:p-4 md:p-6 md:pt-6" role="main" tabIndex={-1}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/login" element={<Login />} /> 
             <Route path="/movies/:id" element={<MovieDetail />} />
             <Route path="/genres" element={<GenreReports />} />
             <Route path="/ratings" element={<RatingPatterns />} />
