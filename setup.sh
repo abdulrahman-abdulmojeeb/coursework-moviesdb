@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-TOTAL_STEPS=10
+TOTAL_STEPS=11
 CURRENT_STEP=0
 LOG="/tmp/moviesdb-setup.log"
 BAR_WIDTH=30
@@ -126,9 +126,16 @@ if [ ! -d "$ML_DIR" ]; then
 fi
 done_step
 
+step "Validate dataset"
+python3 scripts/validate_data.py "$ML_DIR" >> "$LOG" 2>&1 || fail_step
+done_step
+
+
+
 step "Build Docker images"
 run_with_status "Step [0-9]+/[0-9]+" docker compose build || fail_step
 done_step
+
 
 step "Start containers"
 docker compose up -d >> "$LOG" 2>&1 || fail_step
