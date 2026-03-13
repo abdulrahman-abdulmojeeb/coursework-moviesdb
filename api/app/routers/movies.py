@@ -20,6 +20,7 @@ async def get_movies(
     min_rating: Optional[float] = Query(None, ge=0, le=5),
     sort_by: str = Query("title", regex="^(title|year|rating)$"),
     sort_order: str = Query("asc", regex="^(asc|desc)$"),
+    director: Optional[str] = None,
 ):
     offset = (page - 1) * limit
 
@@ -58,6 +59,9 @@ async def get_movies(
             )
         """)
         params.append(min_rating)
+    if director:
+        conditions.append("md.director ILIKE %s")
+        params.append(f"%{director}%") 
 
     where_clause = " AND ".join(conditions) if conditions else "1=1"
 
@@ -108,6 +112,7 @@ async def get_movies(
     count_query = f"""
         SELECT COUNT(DISTINCT m.movie_id)
         FROM movie m
+        LEFT JOIN movie_detail md ON m.movie_id = md.movie_id
         LEFT JOIN movie_genre mg ON m.movie_id = mg.movie_id
         LEFT JOIN genre g ON mg.genre_id = g.genre_id
         WHERE {where_clause}

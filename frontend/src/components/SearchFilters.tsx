@@ -19,6 +19,7 @@ interface FilterState {
   min_rating: number | undefined
   sort_by: string
   sort_order: string
+  director: string
 }
 
 interface SearchFiltersProps {
@@ -35,7 +36,7 @@ export default function SearchFilters({
   return (
     <Card className="mb-6" role="search" aria-label="Filter movies">
       <CardContent className="pt-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           {/* Title Search */}
           <div className="space-y-2">
             <Label htmlFor="title-search">Search Title</Label>
@@ -46,7 +47,17 @@ export default function SearchFilters({
               onChange={(e) => onFilterChange({ title: e.target.value })}
             />
           </div>
-
+          
+          <div className="space-y-2">
+            <Label htmlFor="director-search">Search Director</Label>
+            <Input
+              id="director-search"
+              placeholder="Enter director name..."
+              value={filters.director}
+              onChange={(e) => onFilterChange({ director: e.target.value })}
+            />
+          </div>
+          
           {/* Genre Filter */}
           <div className="space-y-2">
             <Label>Genre</Label>

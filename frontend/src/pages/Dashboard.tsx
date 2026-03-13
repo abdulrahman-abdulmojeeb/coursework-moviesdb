@@ -20,6 +20,7 @@ export default function Dashboard() {
     min_rating: undefined as number | undefined,
     sort_by: "title",
     sort_order: "asc",
+    director: "",
   })
 
   const { data: genres } = useQuery({
