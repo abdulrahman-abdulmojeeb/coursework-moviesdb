@@ -31,31 +31,44 @@ import {
 import { collectionsApi, appRatingsApi } from "../services/api";
 import { formatNumber, formatRuntime, isLoggedIn } from "@/lib/utils"
 
-const scoreColor = (pct: number, prefix: "bg" | "text" = "text") =>
-  pct >= 70 ? `${prefix}-green-500` : pct >= 50 ? `${prefix}-yellow-500` : `${prefix}-red-500`
-
-function RatingBar({ label, score, maxScore, suffix, extra }: {
-  label: string; score: number; maxScore: number; suffix: string; extra?: React.ReactNode
-}) {
-  const pct = (score / maxScore) * 100
-  return (
-    <div className="space-y-1">
-      <div className="flex justify-between items-center text-sm">
-        <span className="font-medium w-24">{label}</span>
-        <div className="flex-1 mx-3">
-          <div className="h-3 bg-muted rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${scoreColor(pct, "bg")}`}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-        </div>
-        <span className={`font-semibold w-16 text-right ${scoreColor(pct)}`}>{suffix}</span>
-        {extra && <span className="text-xs w-24 text-right">{extra}</span>}
-      </div>
-    </div>
-  )
+const scoreColor = (pct: number, prefix: "bg" | "text" = "text") => {
+  const colors = {
+    bg: {
+      green: "bg-green-500",
+      yellow: "bg-yellow-500",
+      red: "bg-red-500",
+    },
+    text: {
+      green: "text-green-500",
+      yellow: "text-yellow-500",
+      red: "text-red-500",
+    },
+  }
+  const shade = pct >= 70 ? "green" : pct >= 50 ? "yellow" : "red"
+  return colors[prefix][shade]
 }
+  function RatingBar({ label, score, maxScore, suffix, extra }: {
+    label: string; score: number; maxScore: number; suffix: string; extra?: React.ReactNode
+  }) {
+    const pct = Math.min(100, (score / maxScore) * 100)
+    return (
+      <div className="space-y-1">
+        <div className="flex justify-between items-center text-sm">
+          <span className="font-medium w-24">{label}</span>
+          <div className="flex-1 mx-3">
+            <div className="h-3 bg-muted rounded-full overflow-hidden">
+              <div
+                className={`h-3 rounded-full ${scoreColor(pct, "bg")}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+          <span className={`font-semibold w-16 text-right ${scoreColor(pct)}`}>{suffix}</span>
+          {extra && <span className="text-xs w-24 text-right">{extra}</span>}
+        </div>
+      </div>
+    )
+  }
 
 export default function MovieDetail() {
   const { id } = useParams<{ id: string }>()
