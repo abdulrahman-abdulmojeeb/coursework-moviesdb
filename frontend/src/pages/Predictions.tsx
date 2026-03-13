@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
+import { useNavigate } from "react-router-dom"
 import {
   BarChart,
   Bar,
@@ -10,7 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { predictionsApi, genresApi } from "../services/api"
-import type { Genre, PredictionResult } from "../types"
+import type { Genre, PredictionResult, SimilarMovie } from "../types"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -18,19 +19,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, Star } from "lucide-react"
 import InfoCard from "@/components/InfoCard"
 import { cn } from "@/lib/utils"
 
 export default function Predictions() {
-  const [title, setTitle] = useState("")
   const [selectedGenres, setSelectedGenres] = useState<string[]>([])
-  const [year, setYear] = useState<number | undefined>()
+  const navigate = useNavigate()
 
   const { data: genres } = useQuery({
     queryKey: ["genres"],
@@ -40,8 +39,15 @@ export default function Predictions() {
   const predictMutation = useMutation({
     mutationFn: () =>
       predictionsApi
-        .predict({ title, genres: selectedGenres, year })
+        .predict({ genres: selectedGenres })
         .then((res) => res.data as PredictionResult),
+  })
+
+  const similarMutation = useMutation({
+    mutationFn: () =>
+      predictionsApi
+        .getSimilarByGenres(selectedGenres, 6)
+        .then((res) => res.data?.similar_movies as SimilarMovie[] ?? []),
   })
 
   const handleGenreToggle = (genre: string) => {
@@ -51,8 +57,10 @@ export default function Predictions() {
   }
 
   const handlePredict = () => {
-    if (title && selectedGenres.length > 0) {
-      predictMutation.mutate()
+    if (selectedGenres.length > 0) {
+      predictMutation.mutate(undefined, {
+        onSuccess: () => similarMutation.mutate(),
+      })
     }
   }
 
@@ -71,29 +79,6 @@ export default function Predictions() {
             <CardTitle>New Title Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Movie Title</Label>
-              <Input
-                id="title"
-                placeholder="Enter the movie title..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="year">Release Year (optional)</Label>
-              <Input
-                id="year"
-                type="number"
-                placeholder="e.g., 2024"
-                value={year || ""}
-                onChange={(e) =>
-                  setYear(e.target.value ? parseInt(e.target.value) : undefined)
-                }
-              />
-            </div>
-
             <div className="space-y-2">
               <Label>Genres (select at least one)</Label>
               <div className="flex flex-wrap gap-2 mt-2">
@@ -119,9 +104,7 @@ export default function Predictions() {
 
             <Button
               onClick={handlePredict}
-              disabled={
-                !title || selectedGenres.length === 0 || predictMutation.isPending
-              }
+              disabled={selectedGenres.length === 0 || predictMutation.isPending}
               className="w-full"
             >
               {predictMutation.isPending ? "Predicting..." : "Generate Prediction"}
@@ -166,13 +149,9 @@ export default function Predictions() {
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Confidence:{" "}
-                    {predictMutation.data.prediction.confidence_interval.low.toFixed(
-                      1
-                    )}{" "}
+                    {predictMutation.data.prediction.confidence_interval.low.toFixed(1)}{" "}
                     -{" "}
-                    {predictMutation.data.prediction.confidence_interval.high.toFixed(
-                      1
-                    )}
+                    {predictMutation.data.prediction.confidence_interval.high.toFixed(1)}
                   </p>
                 </div>
 
@@ -198,12 +177,18 @@ export default function Predictions() {
                   </p>
                   <div className="h-40 sm:h-48">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={predictMutation.data.distribution} margin={{ left: -10, right: 10 }}>
+                      <BarChart
+                        data={predictMutation.data.distribution}
+                        margin={{ left: -10, right: 10 }}
+                      >
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="rating" />
                         <YAxis />
                         <Tooltip
-                          formatter={(value?: number) => [`${value ?? 0}%`, "Percentage"]}
+                          formatter={(value?: number) => [
+                            `${value ?? 0}%`,
+                            "Percentage",
+                          ]}
                         />
                         <Bar dataKey="percentage" fill="var(--primary)" />
                       </BarChart>
@@ -216,18 +201,104 @@ export default function Predictions() {
         </Card>
       </div>
 
+      {(similarMutation.isPending || similarMutation.data) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Similar Movies
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                matching {selectedGenres.join(", ")}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {similarMutation.isPending && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="aspect-[2/3] w-full rounded-md" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {similarMutation.data && similarMutation.data.length === 0 && (
+              <p className="text-center text-muted-foreground py-6">
+                No similar movies found for these genres.
+              </p>
+            )}
+
+            {similarMutation.data && similarMutation.data.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                {similarMutation.data.map((movie: SimilarMovie) => (
+                  <div
+                    key={movie.movie_id}
+                    className="group space-y-2 cursor-pointer"
+                    onClick={() => navigate(`/movies/${movie.movie_id}`)}
+                  >
+                    <div className="relative aspect-[2/3] overflow-hidden rounded-md bg-muted">
+                      {movie.poster_url ? (
+                        <img
+                          src={movie.poster_url}
+                          alt={movie.title}
+                          className="object-cover w-full h-full transition-transform group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground text-xs text-center px-2">
+                          No poster
+                        </div>
+                      )}
+                      {movie.genre_similarity_pct && (
+                        <div className="absolute top-1 right-1 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded">
+                          {movie.genre_similarity_pct}% match
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium leading-tight line-clamp-2">
+                        {movie.title}
+                      </p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span className="text-xs text-muted-foreground">
+                          {movie.avg_rating ?? "—"}
+                        </span>
+                        {movie.release_year && (
+                          <span className="text-xs text-muted-foreground">
+                            · {movie.release_year}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <InfoCard>
         <p>
           <strong>Data Source:</strong> Predictions are based on the{" "}
-          <a href="https://grouplens.org/datasets/movielens/" target="_blank" rel="noopener noreferrer" className="underline">
+          
+            href="https://grouplens.org/datasets/movielens/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          <a>
             MovieLens ml-latest-small dataset
           </a>{" "}
           containing 100,000 ratings from 600 users across 9,700 movies.
         </p>
         <p>
-          <strong>Methodology:</strong> The prediction algorithm calculates genre similarity between your input and existing movies,
-          then computes a weighted average rating based on similar titles. The confidence interval reflects the variance in ratings
-          for movies with matching genre profiles. Higher genre overlap with well-rated films yields more confident predictions.
+          <strong>Methodology:</strong> The prediction algorithm calculates genre
+          similarity between your input and existing movies, then computes a weighted
+          average rating based on similar titles. The confidence interval reflects the
+          variance in ratings for movies with matching genre profiles. Higher genre
+          overlap with well-rated films yields more confident predictions.
         </p>
       </InfoCard>
     </div>

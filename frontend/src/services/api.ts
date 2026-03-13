@@ -83,10 +83,12 @@ export const ratingsApi = {
 
 // Predictions API
 export const predictionsApi = {
-  predict: (data: { title: string; genres: string[]; year?: number }) =>
+  predict: (data: { genres: string[] }) =>
     api.post('/predictions/predict', data),
   getSimilar: (movieId: number, limit?: number) =>
     api.get(`/predictions/similar/${movieId}`, { params: { limit } }),
+  getSimilarByGenres: (genres: string[], limit?: number) =>
+    api.post('/predictions/similar-by-genres', { genres }, { params: { limit } }),
   getPreviewPanel: (movieId: number, panelSize?: number) =>
     api.get('/predictions/preview-panel', { params: { movie_id: movieId, panel_size: panelSize } }),
 }

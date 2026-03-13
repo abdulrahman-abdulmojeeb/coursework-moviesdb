@@ -9,9 +9,7 @@ router = APIRouter()
 
 
 class MoviePredictionRequest(BaseModel):
-    title: str
     genres: list[str]
-    year: Optional[int] = None
 
 
 @router.post("/predict")
@@ -91,7 +89,6 @@ async def predict_rating(request: MoviePredictionRequest):
     distribution = execute_query(distribution_query, (request.genres,))
 
     return {
-        "title": request.title,
         "genres": request.genres,
         "prediction": {
             "mean_rating": result["predicted_rating"],
@@ -222,4 +219,57 @@ async def get_preview_panel_prediction(
             "uncertainty": result["uncertainty"],
             "panel_coverage": result["panel_members_with_data"],
         },
+    }
+
+@router.post("/similar-by-genres")
+async def get_similar_by_genres(request: MoviePredictionRequest, limit: int = Query(6, ge=1, le=50)):
+    if not request.genres:
+        raise HTTPException(status_code=400, detail="At least one genre is required")
+
+    query = """
+        WITH target_genres AS (
+            SELECT genre_id FROM genre WHERE name = ANY(%s)
+        ),
+        genre_similarity AS (
+            SELECT
+                m.movie_id,
+                m.title,
+                m.release_year,
+                md.poster_path,
+                COUNT(DISTINCT mg.genre_id) as matching_genres,
+                (SELECT COUNT(*) FROM target_genres) as total_genres
+            FROM movie m
+            JOIN movie_genre mg ON m.movie_id = mg.movie_id
+            LEFT JOIN movie_detail md ON m.movie_id = md.movie_id
+            WHERE mg.genre_id IN (SELECT genre_id FROM target_genres)
+            GROUP BY m.movie_id, md.poster_path
+            HAVING COUNT(DISTINCT mg.genre_id) >= GREATEST(1, (SELECT COUNT(*) FROM target_genres) / 2)
+        )
+        SELECT
+            gs.movie_id,
+            gs.title,
+            gs.release_year,
+            gs.poster_path,
+            gs.matching_genres,
+            ROUND(100.0 * gs.matching_genres / gs.total_genres, 1) as genre_similarity_pct,
+            ROUND(AVG(r.rating)::numeric, 2) as avg_rating,
+            COUNT(r.rating_id) as rating_count
+        FROM genre_similarity gs
+        LEFT JOIN rating r ON gs.movie_id = r.movie_id
+        GROUP BY gs.movie_id, gs.title, gs.release_year, gs.poster_path, gs.matching_genres, gs.total_genres
+        ORDER BY genre_similarity_pct DESC, avg_rating DESC
+        LIMIT %s
+    """
+
+    similar = execute_query(query, (request.genres, limit))
+
+    if not similar:
+        raise HTTPException(status_code=404, detail="No similar movies found for these genres")
+
+    for item in similar:
+        item["poster_url"] = build_poster_url(item.get("poster_path"))
+
+    return {
+        "genres": request.genres,
+        "similar_movies": similar,
     }

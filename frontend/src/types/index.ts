@@ -75,7 +75,6 @@ export interface RatingStats {
 }
 
 export interface PredictionResult {
-  title: string
   genres: string[]
   prediction: {
     mean_rating: number
