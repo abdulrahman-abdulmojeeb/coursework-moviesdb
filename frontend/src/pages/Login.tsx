@@ -12,7 +12,6 @@ export default function Login() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [email, setEmail] = useState("")
-  const [inviteToken, setInviteToken] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   
@@ -39,7 +38,7 @@ export default function Login() {
 
     try {
       if (mode === "register") {
-        await authApi.register(username, password, inviteToken, email || undefined)
+        await authApi.register(username, password, email || undefined)
       }
       const { data } = await authApi.login(username, password)
       localStorage.setItem("access_token", data.access_token)
@@ -81,16 +80,10 @@ export default function Login() {
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             {mode === "register" && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email (optional)</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="invite">Invite Token</Label>
-                  <Input id="invite" value={inviteToken} onChange={(e) => setInviteToken(e.target.value)} required />
-                </div>
-              </>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email (optional)</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              </div>
             )}
             {error && <p className="text-sm text-red-500">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>

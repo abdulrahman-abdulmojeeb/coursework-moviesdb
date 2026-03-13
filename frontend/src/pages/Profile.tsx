@@ -1,7 +1,3 @@
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { useMutation } from "@tanstack/react-query"
-import { authApi } from "../services/api"
 import { useTheme } from "@/hooks/useTheme"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,9 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Select,
   SelectContent,
@@ -24,7 +18,6 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  AlertCircle,
   LogOut,
   Moon,
   Sun,
@@ -33,145 +26,6 @@ import {
   UserCircle,
 } from "lucide-react"
 import { isLoggedIn } from "@/lib/utils"
-
-function LoginContent() {
-  const navigate = useNavigate()
-  const [isRegister, setIsRegister] = useState(false)
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [email, setEmail] = useState("")
-  const [error, setError] = useState("")
-
-  const loginMutation = useMutation({
-    mutationFn: () => authApi.login(username, password),
-    onSuccess: (res) => {
-      localStorage.setItem("access_token", res.data.access_token)
-      localStorage.setItem("refresh_token", res.data.refresh_token)
-      navigate("/collections")
-    },
-    onError: () => {
-      setError("Invalid username or password")
-    },
-  })
-
-  const registerMutation = useMutation({
-    mutationFn: () =>
-      authApi.register(username, password, email || undefined),
-    onSuccess: () => {
-      loginMutation.mutate()
-    },
-    onError: () => {
-      setError("Registration failed. Username may already exist.")
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    if (isRegister) {
-      registerMutation.mutate()
-    } else {
-      loginMutation.mutate()
-    }
-  }
-
-  return (
-    <Card className="max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-center">
-          {isRegister ? "Create Account" : "Login"}
-        </CardTitle>
-        <CardDescription className="text-center">
-          {isRegister
-            ? "Register a new account to access collections"
-            : "Sign in to manage your collections"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-
-          {isRegister && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email (optional)</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-            </>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={loginMutation.isPending || registerMutation.isPending}
-          >
-            {loginMutation.isPending || registerMutation.isPending
-              ? "Please wait..."
-              : isRegister
-                ? "Create Account"
-                : "Login"}
-          </Button>
-        </form>
-
-        <div className="mt-4 text-center text-sm">
-          {isRegister ? (
-            <p>
-              Already have an account?{" "}
-              <button
-                onClick={() => setIsRegister(false)}
-                className="text-primary hover:underline"
-              >
-                Login
-              </button>
-            </p>
-          ) : (
-            <p>
-              Don't have an account?{" "}
-              <button
-                onClick={() => setIsRegister(true)}
-                className="text-primary hover:underline"
-              >
-                Register
-              </button>
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
 
 function LoggedInContent() {
   const handleLogout = () => {
