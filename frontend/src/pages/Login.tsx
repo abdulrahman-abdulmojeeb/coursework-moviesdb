@@ -14,11 +14,27 @@ export default function Login() {
   const [inviteToken, setInviteToken] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  
+  const validatePassword = (pwd: string) => {
+    if (pwd.length < 8) return "Password must be at least 8 characters"
+    if (!/[0-9]/.test(pwd)) return "Password must contain at least one number"
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)) return "Password must contain at least one special character"
+    return null
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
+
+    if (mode === "register") {
+        const passwordError = validatePassword(password)
+        if (passwordError) {
+          setError(passwordError)
+          setLoading(false)
+          return
+        }
+      }
 
     try {
       if (mode === "login") {
