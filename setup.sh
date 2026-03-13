@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-# ── Config ──────────────────────────────────────────────────────────
 TOTAL_STEPS=10
 CURRENT_STEP=0
 LOG="/tmp/moviesdb-setup.log"
@@ -11,7 +10,6 @@ SUB_STATUS=""
 
 > "$LOG"  # truncate log
 
-# ── Colors ──────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
@@ -19,7 +17,7 @@ BOLD='\033[1m'
 DIM='\033[2m'
 RESET='\033[0m'
 
-# ── Helpers ─────────────────────────────────────────────────────────
+#helpers
 bar() {
     local filled=$(( CURRENT_STEP * BAR_WIDTH / TOTAL_STEPS ))
     local empty=$(( BAR_WIDTH - filled ))
@@ -52,10 +50,6 @@ fail_step() {
     exit 1
 }
 
-# Run a command, tee output to log, and parse progress lines to update status.
-# Usage: run_with_status <pattern> <command> [args...]
-#   pattern: a grep -oE regex to extract a progress token from stdout lines
-#            use "" to skip progress parsing
 run_with_status() {
     local pattern="$1"; shift
 
@@ -64,10 +58,10 @@ run_with_status() {
         return $?
     fi
 
-    # Run command, tee to log, and parse progress lines
+    #run command, tee to log, and parse progress lines
     "$@" 2>&1 | while IFS= read -r line; do
         echo "$line" >> "$LOG"
-        # Try to extract progress info
+        #try to extract progress info
         local match
         match=$(echo "$line" | grep -oE "$pattern" 2>/dev/null || true)
         if [ -n "$match" ]; then
@@ -78,12 +72,12 @@ run_with_status() {
     return "${PIPESTATUS[0]}"
 }
 
-# ── Banner ──────────────────────────────────────────────────────────
+#banner
 echo ""
 echo -e "  ${BOLD}MoviesDB Setup${RESET}"
 echo ""
 
-# ── Pre-flight checks ──────────────────────────────────────────────
+#pre-flight checks
 preflight_ok=true
 
 if ! command -v docker &>/dev/null; then
@@ -113,14 +107,13 @@ if [ "$preflight_ok" = false ]; then
     exit 1
 fi
 
-# ── Step 1: .env ────────────────────────────────────────────────────
+
 step "Create .env from template"
 if [ ! -f .env ]; then
     cp .env.example .env >> "$LOG" 2>&1
 fi
 done_step
 
-# ── Step 2: MovieLens dataset ──────────────────────────────────────
 step "Download MovieLens dataset"
 DATA_DIR="./data"
 ML_DIR="$DATA_DIR/ml-latest-small"
@@ -133,16 +126,13 @@ if [ ! -d "$ML_DIR" ]; then
 fi
 done_step
 
-# ── Step 3: Build images ──────────────────────────────────────────
 step "Build Docker images"
 run_with_status "Step [0-9]+/[0-9]+" docker compose build || fail_step
 done_step
 
-# ── Step 4: Start containers ──────────────────────────────────────
 step "Start containers"
 docker compose up -d >> "$LOG" 2>&1 || fail_step
 
-# Wait for API health
 MAX_RETRIES=30
 RETRY_COUNT=0
 until curl -sf http://localhost:8000/health > /dev/null 2>&1; do
@@ -157,38 +147,33 @@ until curl -sf http://localhost:8000/health > /dev/null 2>&1; do
 done
 done_step
 
-# ── Step 5: Load movies & genres ──────────────────────────────────
 step "Load movies & genres"
 run_with_status "Inserting [0-9]+ (movies|genres|movie-genre)" \
     docker exec moviesdb-api python scripts/load_movielens.py --data-dir /app/data --step movies || fail_step
 done_step
 
-# ── Step 6: Load ratings ─────────────────────────────────────────
 step "Load ratings"
 run_with_status "Processed [0-9]+/[0-9]+" \
     docker exec moviesdb-api python scripts/load_movielens.py --data-dir /app/data --step ratings || fail_step
 done_step
 
-# ── Step 7: Load tags, links & personality ────────────────────────
 step "Load tags, links & personality"
 run_with_status "Inserting [0-9]+ (tags|movie links|personality)" \
     docker exec moviesdb-api python scripts/load_movielens.py --data-dir /app/data --step extras || fail_step
 done_step
 
-# ── Step 8: Generate personality profiles ─────────────────────────
 step "Generate personality profiles"
 run_with_status "Processing user [0-9]+" \
     docker exec moviesdb-api python scripts/generate_personality.py || fail_step
 done_step
 
-# ── Step 9: Load enrichment data ─────────────────────────────────
 step "Load enrichment data (posters, overviews, ratings)"
 ENRICHMENT_SQL="./database/enrichment_data.sql"
 if [ -f "$ENRICHMENT_SQL" ]; then
     docker exec -i moviesdb-postgres psql -U moviesdb -d moviesdb --quiet < "$ENRICHMENT_SQL" >> "$LOG" 2>&1 || fail_step
     done_step
 else
-    # Fallback: try fetching from server
+    #fallback: try fetching from server
     DUMP=$(curl -sf "$SYNC_SERVER/api/movies/export/enrichment.sql" 2>>"$LOG") && \
         echo "$DUMP" | docker exec -i moviesdb-postgres psql -U moviesdb -d moviesdb --quiet >> "$LOG" 2>&1
     if [ $? -eq 0 ] && [ -n "$DUMP" ]; then
@@ -198,7 +183,6 @@ else
     fi
 fi
 
-# ── Step 10: Create default user ──────────────────────────────────
 step "Create default user"
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
     -X POST http://localhost:8000/api/auth/register \
@@ -212,7 +196,6 @@ else
     fail_step
 fi
 
-# ── Done ────────────────────────────────────────────────────────────
 echo ""
 echo -e "  ${GREEN}${BOLD}Setup Complete${RESET}"
 echo ""
