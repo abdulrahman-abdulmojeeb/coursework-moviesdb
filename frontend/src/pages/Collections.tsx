@@ -228,53 +228,73 @@ export default function Collections() {
                 </div>
               </CardHeader>
               <CardContent>
-              {collectionDetail.movies?.length > 0 ? (
-                  <div className="space-y-2">
-                    {collectionDetail.movies.map((movie) => (
-                      <div
-                        key={movie.movie_id}
-                        className="flex justify-between items-center p-3 bg-muted rounded-md gap-4"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Link
-                              to={`/movies/${movie.movie_id}`}
-                              className="font-medium hover:text-primary transition-colors"
-                            >
-                              {movie.title}
-                            </Link>
-                            <span className="text-muted-foreground text-sm">
-                              ({movie.release_year})
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {movie.genres.map((genre) => (
-                              <Badge key={genre} variant="secondary" className="text-xs">
-                                {genre}
-                              </Badge>
+                {collectionDetail.movies?.length > 0 ? (
+                  <div className="space-y-6">
+                    {Object.entries(
+                      collectionDetail.movies.reduce((groups, movie) => {
+                        const genres = movie.genres.length > 0 ? movie.genres : ["Uncategorised"]
+                        genres.forEach((genre) => {
+                          if (!groups[genre]) groups[genre] = []
+                          groups[genre].push(movie)
+                        })
+                        return groups
+                      }, {} as Record<string, typeof collectionDetail.movies>)
+                    )
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([genre, movies]) => (
+                        <div key={genre}>
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                            {genre}
+                          </h3>
+                          <div className="space-y-2">
+                            {movies.map((movie) => (
+                              <div
+                                key={movie.movie_id}
+                                className="flex justify-between items-center p-3 bg-muted rounded-md gap-4"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Link
+                                      to={`/movies/${movie.movie_id}`}
+                                      className="font-medium hover:text-primary transition-colors"
+                                    >
+                                      {movie.title}
+                                    </Link>
+                                    <span className="text-muted-foreground text-sm">
+                                      ({movie.release_year})
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {movie.genres.map((g) => (
+                                      <Badge key={g} variant="secondary" className="text-xs">
+                                        {g}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 flex-shrink-0">
+                                  <span className="text-sm text-muted-foreground">
+                                    ⭐ {movie.avg_rating}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 text-destructive hover:text-destructive"
+                                    onClick={() =>
+                                      removeMovieMutation.mutate({
+                                        collectionId: selectedCollection,
+                                        movieId: movie.movie_id,
+                                      })
+                                    }
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
                             ))}
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          <span className="text-sm text-muted-foreground">
-                            ⭐ {movie.avg_rating}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 text-destructive hover:text-destructive"
-                            onClick={() =>
-                              removeMovieMutation.mutate({
-                                collectionId: selectedCollection,
-                                movieId: movie.movie_id,
-                              })
-                            }
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
