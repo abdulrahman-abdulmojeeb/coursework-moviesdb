@@ -162,24 +162,37 @@ done_step
 
 
 step "Start containers"
-docker compose up -d >> "$LOG" 2>&1 || fail_step
+# Start database first so we can detect and recover from stale volumes
+docker compose up -d db >> "$LOG" 2>&1 || true
+sleep 3
 
-# Check if the database container crashed (common with stale volumes)
-sleep 2
-if ! docker inspect --format='{{.State.Running}}' moviesdb-postgres 2>/dev/null | grep -q true; then
+# Check if the database container is running
+DB_RUNNING=false
+for i in 1 2 3; do
+    if docker inspect --format='{{.State.Running}}' moviesdb-postgres 2>/dev/null | grep -q true; then
+        DB_RUNNING=true
+        break
+    fi
+    sleep 2
+done
+
+if [ "$DB_RUNNING" = false ]; then
     echo "Database container failed to start. Logs:" >> "$LOG"
     docker logs moviesdb-postgres >> "$LOG" 2>&1 || true
     # Auto-recover: remove stale volume and retry
-    printf "\r\033[K  ${YELLOW}⚠${RESET}  Database container crashed — removing stale volume and retrying\n"
+    printf "\r\033[K  ${YELLOW}⚠${RESET}  Database crashed — clearing stale volume and retrying\n"
     docker compose down -v >> "$LOG" 2>&1 || true
-    docker compose up -d >> "$LOG" 2>&1 || fail_step
-    sleep 2
+    docker compose up -d db >> "$LOG" 2>&1 || fail_step
+    sleep 3
     if ! docker inspect --format='{{.State.Running}}' moviesdb-postgres 2>/dev/null | grep -q true; then
         echo "Database still failing after volume reset. Logs:" >> "$LOG"
         docker logs moviesdb-postgres >> "$LOG" 2>&1 || true
         fail_step
     fi
 fi
+
+# Now start api and frontend
+docker compose up -d >> "$LOG" 2>&1 || fail_step
 
 MAX_RETRIES=30
 RETRY_COUNT=0
