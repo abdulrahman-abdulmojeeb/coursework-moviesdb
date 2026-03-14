@@ -291,11 +291,12 @@ fi
 step "Create default user"
 # Generate a random password if not provided via DEFAULT_PASSWORD env var
 DEFAULT_PASSWORD="${DEFAULT_PASSWORD:-$(openssl rand -base64 12)}"
+set +e
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
     -X POST http://localhost:8000/api/auth/register \
     -H "Content-Type: application/json" \
     -d "{\"username\":\"admin\",\"password\":\"$DEFAULT_PASSWORD\"}")
-
+set -e
 if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "400" ]; then
     done_step
 else
