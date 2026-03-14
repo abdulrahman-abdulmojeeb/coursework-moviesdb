@@ -229,9 +229,10 @@ run_with_status "Inserting [0-9]+ (tags|movie links|personality)" \
     docker exec moviesdb-api python scripts/load_movielens.py --data-dir /app/data --step extras || fail_step
 done_step
 
-step "Generate personality profiles"
-run_with_status "Processing user [0-9]+" \
-    docker exec moviesdb-api python scripts/generate_personality.py || fail_step
+step "Import personality dataset"
+run_with_status "\[[0-9]/3\]" \
+    docker exec moviesdb-api python scripts/import_personality_dataset.py \
+        --personality-csv /app/data/ml-latest-small/personality-data.csv || fail_step
 done_step
 
 step "Load enrichment data (posters, overviews, ratings)"

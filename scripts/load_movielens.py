@@ -11,9 +11,6 @@ The data directory should contain:
     - ratings.csv
     - tags.csv
     - links.csv (optional)
-
-For personality data, it should also contain:
-    - personality-data.csv (from personality-isf2018 dataset)
 """
 
 import argparse
@@ -264,72 +261,6 @@ def load_links(conn, data_dir: str) -> None:
     cursor.close()
     print("  Links loaded successfully!")
 
-
-def load_personality(conn, data_dir: str) -> None:
-    """Load personality data from personality-data.csv."""
-    print("Loading personality data...")
-
-    # Try different possible file names
-    possible_paths = [
-        os.path.join(data_dir, "personality-data.csv"),
-        os.path.join(data_dir, "personality", "personality-data.csv"),
-        os.path.join(data_dir, "personality.csv"),
-    ]
-
-    personality_path = None
-    for path in possible_paths:
-        if os.path.exists(path):
-            personality_path = path
-            break
-
-    if not personality_path:
-        print("  Warning: personality data not found, skipping")
-        return
-
-    cursor = conn.cursor()
-    personality_data = []
-
-    # Pre-fetch existing user IDs to avoid per-row queries
-    cursor.execute("SELECT user_id FROM ml_user")
-    existing_users = {row[0] for row in cursor.fetchall()}
-
-    with open(personality_path, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            user_id = int(row['userid'])
-
-            if user_id in existing_users:
-                personality_data.append((
-                    user_id,
-                    float(row.get('openness', 0)),
-                    float(row.get('agreeableness', 0)),
-                    float(row.get('emotional_stability', 0)),
-                    float(row.get('conscientiousness', 0)),
-                    float(row.get('extraversion', 0))
-                ))
-
-    print(f"  Inserting {len(personality_data)} personality records...")
-    execute_values(
-        cursor,
-        """
-        INSERT INTO personality_user
-        (user_id, openness, agreeableness, emotional_stability, conscientiousness, extraversion)
-        VALUES %s
-        ON CONFLICT (user_id) DO UPDATE SET
-            openness = EXCLUDED.openness,
-            agreeableness = EXCLUDED.agreeableness,
-            emotional_stability = EXCLUDED.emotional_stability,
-            conscientiousness = EXCLUDED.conscientiousness,
-            extraversion = EXCLUDED.extraversion
-        """,
-        personality_data
-    )
-    conn.commit()
-
-    cursor.close()
-    print("  Personality data loaded successfully!")
-
-
 def main():
     parser = argparse.ArgumentParser(description="Load MovieLens data into PostgreSQL")
     parser.add_argument(
@@ -370,13 +301,11 @@ def main():
         elif args.step == "extras":
             load_tags(conn, effective_data_dir)
             load_links(conn, effective_data_dir)
-            load_personality(conn, effective_data_dir)
         else:
             load_movies(conn, effective_data_dir)
             load_ratings(conn, effective_data_dir)
             load_tags(conn, effective_data_dir)
             load_links(conn, effective_data_dir)
-            load_personality(conn, effective_data_dir)
 
         print("-" * 50)
         print("Data loading complete!")
@@ -392,8 +321,6 @@ def main():
         print(f"  Total ratings: {cursor.fetchone()[0]}")
         cursor.execute("SELECT COUNT(*) FROM tag")
         print(f"  Total tags: {cursor.fetchone()[0]}")
-        cursor.execute("SELECT COUNT(*) FROM personality_user")
-        print(f"  Users with personality data: {cursor.fetchone()[0]}")
         cursor.close()
 
     finally:

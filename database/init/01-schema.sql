@@ -54,19 +54,39 @@ CREATE TABLE IF NOT EXISTS tag (
 
 COMMENT ON TABLE tag IS 'User-generated tags for movie';
 
--- Personality Data Tables (Requirement 5)
-CREATE TABLE IF NOT EXISTS personality_user (
-    user_id INTEGER PRIMARY KEY REFERENCES ml_user(user_id) ON DELETE CASCADE,
-    openness DECIMAL(4,2) CHECK (openness >= 1.0 AND openness <= 5.0),
-    agreeableness DECIMAL(4,2) CHECK (agreeableness >= 1.0 AND agreeableness <= 5.0),
-    emotional_stability DECIMAL(4,2) CHECK (emotional_stability >= 1.0 AND emotional_stability <= 5.0),
-    conscientiousness DECIMAL(4,2) CHECK (conscientiousness >= 1.0 AND conscientiousness <= 5.0),
-    extraversion DECIMAL(4,2) CHECK (extraversion >= 1.0 AND extraversion <= 5.0)
+-- Stores the raw Personality 2018 dataset users (Requirement 5)
+CREATE TABLE IF NOT EXISTS personality_dataset_user (
+    id SERIAL PRIMARY KEY,
+    hashed_user_id VARCHAR(64) NOT NULL UNIQUE,   -- original hashed userid from CSV
+    openness DECIMAL(3,1) CHECK (openness >= 1.0 AND openness <= 7.0),
+    agreeableness DECIMAL(3,1) CHECK (agreeableness >= 1.0 AND agreeableness <= 7.0),
+    emotional_stability DECIMAL(3,1) CHECK (emotional_stability >= 1.0 AND emotional_stability <= 7.0),
+    conscientiousness DECIMAL(3,1) CHECK (conscientiousness >= 1.0 AND conscientiousness <= 7.0),
+    extraversion DECIMAL(3,1) CHECK (extraversion >= 1.0 AND extraversion <= 7.0),
+    assigned_metric VARCHAR(50),
+    assigned_condition VARCHAR(50)
 );
 
-COMMENT ON TABLE personality_user IS 'Big Five personality traits for users (Requirement 5)';
+-- Predicted ratings from the dataset (the movie_1..12 columns)
+CREATE TABLE IF NOT EXISTS personality_predicted_rating (
+    id SERIAL PRIMARY KEY,
+    personality_user_id INTEGER NOT NULL REFERENCES personality_dataset_user(id) ON DELETE CASCADE,
+    movie_id INTEGER NOT NULL REFERENCES movie(movie_id) ON DELETE CASCADE,
+    predicted_rating DECIMAL(6,4) NOT NULL
+);
 
-
+-- Pre-computed: average personality traits of people who rated a genre highly (derived from personality_predicted_rating joined with movie_genre)
+CREATE TABLE IF NOT EXISTS genre_personality_profile (
+    genre_id INTEGER NOT NULL REFERENCES genre(genre_id) ON DELETE CASCADE,
+    avg_openness DECIMAL(4,2),
+    avg_agreeableness DECIMAL(4,2),
+    avg_emotional_stability DECIMAL(4,2),
+    avg_conscientiousness DECIMAL(4,2),
+    avg_extraversion DECIMAL(4,2),
+    sample_size INTEGER,
+    computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (genre_id)
+);
 
 -- Application User Tables (Requirement 6)
 CREATE TABLE IF NOT EXISTS app_user (

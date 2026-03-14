@@ -24,11 +24,17 @@ CREATE INDEX IF NOT EXISTS idx_tag_movie_id ON tag (movie_id);
 CREATE INDEX IF NOT EXISTS idx_tag_user_id ON tag (user_id);
 
 -- Personality Analysis Indexes
-CREATE INDEX IF NOT EXISTS idx_personality_openness ON personality_user (openness);
-CREATE INDEX IF NOT EXISTS idx_personality_extraversion ON personality_user (extraversion);
-CREATE INDEX IF NOT EXISTS idx_personality_agreeableness ON personality_user (agreeableness);
-CREATE INDEX IF NOT EXISTS idx_personality_conscientiousness ON personality_user (conscientiousness);
-CREATE INDEX IF NOT EXISTS idx_personality_stability ON personality_user (emotional_stability);
+CREATE INDEX IF NOT EXISTS idx_personality_dataset_openness         ON personality_dataset_user (openness);
+CREATE INDEX IF NOT EXISTS idx_personality_dataset_extraversion     ON personality_dataset_user (extraversion);
+CREATE INDEX IF NOT EXISTS idx_personality_dataset_agreeableness    ON personality_dataset_user (agreeableness);
+CREATE INDEX IF NOT EXISTS idx_personality_dataset_conscientiousness ON personality_dataset_user (conscientiousness);
+CREATE INDEX IF NOT EXISTS idx_personality_dataset_stability        ON personality_dataset_user (emotional_stability);
+
+CREATE INDEX IF NOT EXISTS idx_predicted_rating_user    ON personality_predicted_rating (personality_user_id);
+CREATE INDEX IF NOT EXISTS idx_predicted_rating_movie   ON personality_predicted_rating (movie_id);
+CREATE INDEX IF NOT EXISTS idx_predicted_rating_value   ON personality_predicted_rating (predicted_rating);
+
+CREATE INDEX IF NOT EXISTS idx_genre_personality_genre  ON genre_personality_profile (genre_id);
 
 -- Collection Indexes
 CREATE INDEX IF NOT EXISTS idx_movie_collection_user_id ON movie_collection (user_id);
