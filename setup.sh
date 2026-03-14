@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+if [[ "$OSTYPE" == "msys" ]]; then
+    export MSYS_NO_PATHCONV=1
+fi
+
 TOTAL_STEPS=11
 CURRENT_STEP=0
 LOG="/tmp/moviesdb-setup.log"
@@ -178,7 +182,11 @@ done_step
 
 
 step "Validate dataset"
-python3 scripts/validate_data.py "$ML_DIR" >> "$LOG" 2>&1 || fail_step
+if [[ "$OSTYPE" == "msys" ]]; then
+    py scripts/validate_data.py "$ML_DIR" >> "$LOG" 2>&1 || fail_step
+else
+    python3 scripts/validate_data.py "$ML_DIR" >> "$LOG" 2>&1 || fail_step
+fi
 done_step
 
 
