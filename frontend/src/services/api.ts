@@ -78,6 +78,8 @@ export const ratingsApi = {
   getPatterns: () => api.get('/ratings/patterns'),
   getCrossGenre: (sourceGenre: string, minRatings?: number) =>
     api.get('/ratings/cross-genre', { params: { source_genre: sourceGenre, min_ratings: minRatings } }),
+  getCrossGenreNegative: (sourceGenre: string, minRatings?: number) =>
+    api.get('/ratings/cross-genre-negative', { params: { source_genre: sourceGenre, min_ratings: minRatings } }),
   getLowRaterPatterns: () => api.get('/ratings/low-raters'),
   getConsistency: (genre?: string) => api.get('/ratings/consistency', { params: { genre } }),
 }

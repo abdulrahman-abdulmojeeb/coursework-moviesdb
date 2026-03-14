@@ -77,6 +77,12 @@ export default function RatingPatterns() {
     enabled: !!selectedGenre,
   })
 
+  const { data: crossGenreNeg, isLoading: loadingCrossGenreNeg } = useQuery({
+    queryKey: ["cross-genre-negative", selectedGenre],
+    queryFn: () => ratingsApi.getCrossGenreNegative(selectedGenre).then((res) => res.data),
+    enabled: !!selectedGenre,
+  })
+
   const isLoading = loadingProfile || loadingPatterns || loadingLowRaters
 
   return (
@@ -288,11 +294,35 @@ export default function RatingPatterns() {
 
           {crossGenre && crossGenre.length === 0 && (
             <div className="py-8 text-center text-muted-foreground">
-              No cross-genre data available for this selection
+              No cross-genre preference data available for this selection
             </div>
           )}
 
-          {!selectedGenre && !loadingCrossGenre && (
+          {loadingCrossGenreNeg && (
+            <div className="py-8 text-center text-muted-foreground">Loading...</div>
+          )}
+
+          {crossGenreNeg && crossGenreNeg.length > 0 && (
+            <div className="h-64 sm:h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={crossGenreNeg} layout="vertical" margin={{ left: 60, right: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" domain={[0, 5]} />
+                  <YAxis type="category" dataKey="genre" width={100} />
+                  <Tooltip />
+                  <Bar dataKey="avg_rating" fill="var(--primary)" name="Avg Rating" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {crossGenreNeg && crossGenreNeg.length === 0 && (
+            <div className="py-8 text-center text-muted-foreground">
+              No cross-genre rejection data available for this selection
+            </div>
+          )}
+
+          {!selectedGenre && !loadingCrossGenre && !loadingCrossGenreNeg && (
             <div className="py-8 text-center text-muted-foreground">
               Select a genre to see cross-genre preferences
             </div>

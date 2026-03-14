@@ -100,6 +100,44 @@ async def get_cross_genre_preferences(
     return execute_query(query, (source_genre, min_ratings, source_genre))
 
 
+@router.get("/cross-genre-negative")
+async def get_cross_genre_rejection(
+    source_genre: str = Query(..., max_length=100, description="Genre to analyze rejection from"),
+    min_ratings: int = Query(10, ge=1, le=1000, description="Minimum ratings in source genre"),
+):
+    query = """
+        WITH genre_haters AS (
+            SELECT DISTINCT r.user_id
+            FROM rating r
+            JOIN movie_genre mg ON r.movie_id = mg.movie_id
+            JOIN genre g ON mg.genre_id = g.genre_id
+            WHERE g.name ILIKE %s
+            GROUP BY r.user_id
+            HAVING COUNT(*) >= %s AND AVG(r.rating) <= 2.0
+        ),
+        other_genre_ratings AS (
+            SELECT
+                g.name as genre,
+                AVG(r.rating) as avg_rating,
+                COUNT(*) as rating_count
+            FROM rating r
+            JOIN movie_genre mg ON r.movie_id = mg.movie_id
+            JOIN genre g ON mg.genre_id = g.genre_id
+            WHERE r.user_id IN (SELECT user_id FROM genre_haters)
+              AND g.name NOT ILIKE %s
+            GROUP BY g.name
+        )
+        SELECT
+            genre,
+            ROUND(avg_rating::numeric, 2) as avg_rating,
+            rating_count
+        FROM other_genre_ratings
+        WHERE rating_count >= 50
+        ORDER BY avg_rating ASC
+    """
+    return execute_query(query, (source_genre, min_ratings, source_genre))
+
+
 @router.get("/low-raters")
 async def get_low_rater_patterns():
     query = """
