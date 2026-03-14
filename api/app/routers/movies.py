@@ -94,13 +94,17 @@ async def get_movies(
               (CASE WHEN er.imdb_rating IS NOT NULL THEN 0.30 * er.imdb_rating / 2.0 ELSE 0 END
              + CASE WHEN md.vote_average IS NOT NULL AND md.vote_count >= 5 THEN 0.25 * md.vote_average / 2.0 ELSE 0 END
              + CASE WHEN er.rotten_tomatoes_score IS NOT NULL THEN 0.25 * er.rotten_tomatoes_score / 20.0 ELSE 0 END
-             + CASE WHEN AVG(r.rating) IS NOT NULL AND COUNT(r.rating_id) >= 5 THEN 0.10 * AVG(r.rating) ELSE 0 END
+             + CASE WHEN AVG(r.rating) IS NOT NULL THEN
+                 CASE WHEN COUNT(r.rating_id) >= 5 THEN 0.10 ELSE 0.05 END * AVG(r.rating)
+               ELSE 0 END
              + CASE WHEN er.metacritic_score IS NOT NULL THEN 0.10 * er.metacritic_score / 20.0 ELSE 0 END)
              / NULLIF(
                 CASE WHEN er.imdb_rating IS NOT NULL THEN 0.30 ELSE 0 END
               + CASE WHEN md.vote_average IS NOT NULL AND md.vote_count >= 5 THEN 0.25 ELSE 0 END
               + CASE WHEN er.rotten_tomatoes_score IS NOT NULL THEN 0.25 ELSE 0 END
-              + CASE WHEN AVG(r.rating) IS NOT NULL AND COUNT(r.rating_id) >= 5 THEN 0.10 ELSE 0 END
+              + CASE WHEN AVG(r.rating) IS NOT NULL THEN
+                  CASE WHEN COUNT(r.rating_id) >= 5 THEN 0.10 ELSE 0.05 END
+                ELSE 0 END
               + CASE WHEN er.metacritic_score IS NOT NULL THEN 0.10 ELSE 0 END
              , 0)
             AS NUMERIC), 2) as weighted_rating
@@ -208,13 +212,17 @@ async def get_movie(movie_id: int):
               (CASE WHEN er.imdb_rating IS NOT NULL THEN 0.30 * er.imdb_rating / 2.0 ELSE 0 END
              + CASE WHEN md.vote_average IS NOT NULL AND md.vote_count >= 5 THEN 0.25 * md.vote_average / 2.0 ELSE 0 END
              + CASE WHEN er.rotten_tomatoes_score IS NOT NULL THEN 0.25 * er.rotten_tomatoes_score / 20.0 ELSE 0 END
-             + CASE WHEN AVG(r.rating) IS NOT NULL AND COUNT(r.rating_id) >= 5 THEN 0.10 * AVG(r.rating) ELSE 0 END
+             + CASE WHEN AVG(r.rating) IS NOT NULL THEN
+                 CASE WHEN COUNT(r.rating_id) >= 5 THEN 0.10 ELSE 0.05 END * AVG(r.rating)
+               ELSE 0 END
              + CASE WHEN er.metacritic_score IS NOT NULL THEN 0.10 * er.metacritic_score / 20.0 ELSE 0 END)
              / NULLIF(
                 CASE WHEN er.imdb_rating IS NOT NULL THEN 0.30 ELSE 0 END
               + CASE WHEN md.vote_average IS NOT NULL AND md.vote_count >= 5 THEN 0.25 ELSE 0 END
               + CASE WHEN er.rotten_tomatoes_score IS NOT NULL THEN 0.25 ELSE 0 END
-              + CASE WHEN AVG(r.rating) IS NOT NULL AND COUNT(r.rating_id) >= 5 THEN 0.10 ELSE 0 END
+              + CASE WHEN AVG(r.rating) IS NOT NULL THEN
+                  CASE WHEN COUNT(r.rating_id) >= 5 THEN 0.10 ELSE 0.05 END
+                ELSE 0 END
               + CASE WHEN er.metacritic_score IS NOT NULL THEN 0.10 ELSE 0 END
              , 0)
             AS NUMERIC), 2) as weighted_rating

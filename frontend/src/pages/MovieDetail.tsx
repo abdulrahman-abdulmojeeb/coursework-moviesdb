@@ -391,12 +391,12 @@ export default function MovieDetail() {
                         <tr><td className="py-0.5">IMDb</td><td className="text-right">30%</td><td className="text-right">/2</td></tr>
                         <tr><td className="py-0.5">TMDB</td><td className="text-right">25%</td><td className="text-right">/2</td></tr>
                         <tr><td className="py-0.5">Rotten Tomatoes</td><td className="text-right">25%</td><td className="text-right">/20</td></tr>
-                        <tr><td className="py-0.5">MovieLens</td><td className="text-right">10%</td><td className="text-right">as-is</td></tr>
+                        <tr><td className="py-0.5">MovieLens</td><td className="text-right">5-10%</td><td className="text-right">as-is</td></tr>
                         <tr><td className="py-0.5">Metacritic</td><td className="text-right">10%</td><td className="text-right">/20</td></tr>
                       </tbody>
                     </table>
                     <p className="text-xs text-muted-foreground mt-2">
-                      TMDB requires 5+ votes, MovieLens requires 5+ ratings to be included.
+                      TMDB requires 5+ votes. MovieLens uses 5% weight under 5 ratings, 10% at 5+.
                     </p>
                   </TooltipContent>
                 </Tooltip>
