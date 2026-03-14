@@ -1,104 +1,55 @@
 import { Link } from "react-router-dom"
-import { Plus, Film, Star } from "lucide-react"
+import { Film, Star } from "lucide-react"
 import type { Movie } from "../types"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 
 interface MovieCardProps {
   movie: Movie
   onAddToCollection?: (movieId: number) => void
 }
 
-export default function MovieCard({ movie, onAddToCollection }: MovieCardProps) {
-  const rating = movie.weighted_rating
-
-  // Color thresholds for 0-5 scale
-  const ratingColor = rating
-    ? rating >= 3.5
-      ? "text-green-600 dark:text-green-400"
-      : rating >= 2.5
-        ? "text-yellow-600 dark:text-yellow-400"
-        : "text-red-600 dark:text-red-400"
-    : "text-muted-foreground"
-
+export default function MovieCard({ movie }: MovieCardProps) {
   return (
     <Link
       to={`/movies/${movie.movie_id}`}
-      className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
+      className="group"
       aria-label={`View details for ${movie.title}${movie.release_year ? ` (${movie.release_year})` : ''}`}
     >
-      <Card className="hover:shadow-lg hover:ring-2 hover:ring-primary/20 transition-all overflow-hidden cursor-pointer" role="article">
-      <div className="flex">
-        {/* Poster */}
-        <div className="w-20 sm:w-24 flex-shrink-0">
+      <div className="space-y-2">
+        <div className="aspect-[2/3] bg-muted rounded-lg overflow-hidden relative">
           {movie.poster_url ? (
             <img
               src={movie.poster_url}
               alt={`Movie poster for ${movie.title}`}
-              className="w-full h-28 sm:h-36 object-cover"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-28 sm:h-36 bg-muted flex items-center justify-center" aria-label="No poster available">
-              <Film className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" aria-hidden="true" />
+            <div className="w-full h-full flex items-center justify-center">
+              <Film className="h-10 w-10 text-muted-foreground" />
+            </div>
+          )}
+          {movie.weighted_rating != null && (
+            <div className="absolute top-2 right-2 bg-black/70 text-white text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+              <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+              {movie.weighted_rating.toFixed(1)}
             </div>
           )}
         </div>
-
-        {/* Content */}
-        <CardContent className="flex-1 p-2 sm:p-3 flex flex-col">
-          <div className="flex justify-between items-start gap-2">
-            <h3 className="font-semibold text-sm line-clamp-2">{movie.title}</h3>
-            {movie.release_year && (
-              <span className="text-xs text-muted-foreground flex-shrink-0">
-                {movie.release_year}
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-1 mt-2">
+        <div>
+          <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+            {movie.title}
+          </p>
+          <p className="text-xs text-muted-foreground">{movie.release_year ?? "N/A"}</p>
+          <div className="flex flex-wrap gap-1 mt-1">
             {movie.genres?.slice(0, 2).map((genre) => (
-              <Badge key={genre} variant="secondary" className="text-xs">
+              <Badge key={genre} variant="secondary" className="text-xs px-1 py-0">
                 {genre}
               </Badge>
             ))}
-            {movie.genres?.length > 2 && (
-              <span className="text-xs text-muted-foreground px-1">
-                +{movie.genres.length - 2}
-              </span>
-            )}
           </div>
-
-          <div className="flex items-center justify-between mt-auto pt-2">
-            <div className="flex items-center gap-1">
-              <Star className="h-3.5 w-3.5 text-yellow-500" />
-              <span className={cn("font-bold text-sm", ratingColor)}>
-                {rating ? `${rating.toFixed(1)}/5` : "N/A"}
-              </span>
-            </div>
-
-            {onAddToCollection && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  onAddToCollection(movie.movie_id)
-                }}
-                className="h-7 px-2"
-                aria-label={`Add ${movie.title} to collection`}
-              >
-                <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
-                Add
-              </Button>
-            )}
-          </div>
-        </CardContent>
+        </div>
       </div>
-    </Card>
     </Link>
   )
 }

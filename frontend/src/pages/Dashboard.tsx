@@ -56,12 +56,12 @@ export default function Dashboard() {
       />
 
       {isLoading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="space-y-3">
-              <Skeleton className="h-32 w-full" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="aspect-[2/3] w-full rounded-lg" />
               <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-3 w-1/2" />
             </div>
           ))}
         </div>
@@ -82,7 +82,7 @@ export default function Dashboard() {
             Showing {data.movies.length} of {data.total} movies
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {data.movies.map((movie) => (
               <MovieCard key={movie.movie_id} movie={movie} />
             ))}
