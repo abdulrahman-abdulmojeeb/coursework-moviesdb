@@ -7,6 +7,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -69,6 +70,11 @@ export default function RatingPatterns() {
   const { data: lowRaters, isLoading: loadingLowRaters } = useQuery({
     queryKey: ["low-raters"],
     queryFn: () => ratingsApi.getLowRaterPatterns().then((res) => res.data),
+  })
+
+  const { data: lowRaterGenres, isLoading: loadingLowRaterGenres } = useQuery({
+    queryKey: ["low-rater-genres"],
+    queryFn: () => ratingsApi.getLowRaterGenres().then((res) => res.data),
   })
 
   const { data: crossGenre, isLoading: loadingCrossGenre } = useQuery({
@@ -249,6 +255,44 @@ export default function RatingPatterns() {
           </Card>
         )}
       </div>
+
+      {loadingLowRaterGenres && <Skeleton className="h-96" />}
+
+      {lowRaterGenres && lowRaterGenres.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Harsh Critics vs Overall Ratings by Genre</CardTitle>
+            <CardDescription>
+              Are low-raters consistently harsh across all genres, or only in specific ones?
+              Compares average ratings from harsh critics (avg &le; 2.5, 20+ ratings) against all viewers.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div style={{ height: `${lowRaterGenres.length * 30 + 80}px` }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={lowRaterGenres}
+                  layout="vertical"
+                  margin={{ left: 80, right: 20, top: 20, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" domain={[0, 5]} />
+                  <YAxis type="category" dataKey="genre" width={80} tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    formatter={(value: number, name: string) => [
+                      value,
+                      name === "harsh_avg" ? "Harsh Critics Avg" : "Overall Avg",
+                    ]}
+                  />
+                  <Legend />
+                  <Bar dataKey="harsh_avg" fill="#ef4444" name="Harsh Critics Avg" />
+                  <Bar dataKey="overall_avg" fill="var(--primary)" name="Overall Avg" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

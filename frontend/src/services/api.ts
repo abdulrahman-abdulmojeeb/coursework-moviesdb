@@ -81,12 +81,13 @@ export const ratingsApi = {
   getCrossGenreNegative: (sourceGenre: string, minRatings?: number) =>
     api.get('/ratings/cross-genre-negative', { params: { source_genre: sourceGenre, min_ratings: minRatings } }),
   getLowRaterPatterns: () => api.get('/ratings/low-raters'),
+  getLowRaterGenres: () => api.get('/ratings/low-rater-genres'),
   getConsistency: (genre?: string) => api.get('/ratings/consistency', { params: { genre } }),
 }
 
 // Predictions API
 export const predictionsApi = {
-  predict: (data: { genres: string[] }) =>
+  predict: (data: { genres: string[]; panel_size?: number }) =>
     api.post('/predictions/predict', data),
   getSimilar: (movieId: number, limit?: number) =>
     api.get(`/predictions/similar/${movieId}`, { params: { limit } }),

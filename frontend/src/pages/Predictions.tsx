@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils"
 
 export default function Predictions() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([])
+  const [usePanel, setUsePanel] = useState(false)
+  const [panelSize, setPanelSize] = useState(100)
   const navigate = useNavigate()
 
   const { data: genres } = useQuery({
@@ -39,7 +41,10 @@ export default function Predictions() {
   const predictMutation = useMutation({
     mutationFn: () =>
       predictionsApi
-        .predict({ genres: selectedGenres })
+        .predict({
+          genres: selectedGenres,
+          ...(usePanel ? { panel_size: panelSize } : {}),
+        })
         .then((res) => res.data as PredictionResult),
   })
 
@@ -102,6 +107,39 @@ export default function Predictions() {
               </div>
             </div>
 
+            <div className="space-y-3 rounded-lg border p-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="use-panel"
+                  checked={usePanel}
+                  onChange={(e) => setUsePanel(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="use-panel">Use preview panel</Label>
+              </div>
+              {usePanel && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Panel size</span>
+                    <span className="font-medium">{panelSize} users</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={50}
+                    max={500}
+                    step={10}
+                    value={panelSize}
+                    onChange={(e) => setPanelSize(Number(e.target.value))}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Uses a diverse subset of frequent raters instead of all users
+                  </p>
+                </div>
+              )}
+            </div>
+
             <Button
               onClick={handlePredict}
               disabled={selectedGenres.length === 0 || predictMutation.isPending}
@@ -155,7 +193,7 @@ export default function Predictions() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-center">
+                <div className={`grid ${predictMutation.data.panel ? "grid-cols-3" : "grid-cols-2"} gap-4 text-center`}>
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">Weighted Rating</p>
                     <p className="text-xl font-semibold">
@@ -169,6 +207,17 @@ export default function Predictions() {
                       ratings
                     </p>
                   </div>
+                  {predictMutation.data.panel && (
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground">Panel Coverage</p>
+                      <p className="text-xl font-semibold">
+                        {predictMutation.data.panel.users_in_results}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        of {predictMutation.data.panel.requested_size} panelists
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div>

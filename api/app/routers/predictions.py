@@ -10,6 +10,7 @@ router = APIRouter()
 
 class MoviePredictionRequest(BaseModel):
     genres: list[str] = Field(..., min_length=1, max_length=20)
+    panel_size: Optional[int] = Field(None, ge=50, le=500)
 
 
 @router.post("/predict")
@@ -17,11 +18,28 @@ async def predict_rating(request: MoviePredictionRequest):
     if not request.genres:
         raise HTTPException(status_code=400, detail="At least one genre is required")
 
-    # Find similar movies based on genre
-    genre_placeholders = ", ".join(["%s"] * len(request.genres))
+    panel_cte = ""
+    panel_filter = ""
+    panel_filter_bare = ""
+    panel_params: tuple = ()
+
+    if request.panel_size:
+        panel_cte = """
+        preview_panel AS (
+            SELECT user_id
+            FROM rating
+            GROUP BY user_id
+            HAVING COUNT(*) >= 50 AND STDDEV(rating) > 0.5
+            ORDER BY RANDOM()
+            LIMIT %s
+        ),
+        """
+        panel_filter = "AND r.user_id IN (SELECT user_id FROM preview_panel)"
+        panel_filter_bare = "AND user_id IN (SELECT user_id FROM preview_panel)"
+        panel_params = (request.panel_size,)
 
     query = f"""
-        WITH target_genres AS (
+        WITH {panel_cte}target_genres AS (
             SELECT genre_id FROM genre WHERE name = ANY(%s)
         ),
         similar_movies AS (
@@ -42,19 +60,22 @@ async def predict_rating(request: MoviePredictionRequest):
         similar_ratings AS (
             SELECT
                 r.rating,
+                r.user_id,
                 sm.matching_genres::float / sm.total_target_genres as genre_similarity
             FROM similar_movies sm
             JOIN rating r ON sm.movie_id = r.movie_id
+            WHERE 1=1 {panel_filter}
         )
         SELECT
             ROUND(AVG(rating)::numeric, 2) as predicted_rating,
             ROUND(STDDEV(rating)::numeric, 2) as uncertainty,
             COUNT(*) as based_on_ratings,
-            ROUND((AVG(rating * genre_similarity) / NULLIF(AVG(genre_similarity), 0))::numeric, 2) as weighted_prediction
+            ROUND((AVG(rating * genre_similarity) / NULLIF(AVG(genre_similarity), 0))::numeric, 2) as weighted_prediction,
+            COUNT(DISTINCT user_id) as unique_users
         FROM similar_ratings
     """
 
-    result = execute_query_one(query, (request.genres,))
+    result = execute_query_one(query, panel_params + (request.genres,))
 
     if not result or result["based_on_ratings"] == 0:
         raise HTTPException(
@@ -62,9 +83,8 @@ async def predict_rating(request: MoviePredictionRequest):
             detail="Not enough similar movies found to make prediction"
         )
 
-    # Get rating distribution prediction
     distribution_query = f"""
-        WITH target_genres AS (
+        WITH {panel_cte}target_genres AS (
             SELECT genre_id FROM genre WHERE name = ANY(%s)
         ),
         similar_movies AS (
@@ -82,13 +102,14 @@ async def predict_rating(request: MoviePredictionRequest):
             ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER(), 1) as percentage
         FROM rating
         WHERE movie_id IN (SELECT movie_id FROM similar_movies)
+        {panel_filter_bare}
         GROUP BY rating
         ORDER BY rating
     """
 
-    distribution = execute_query(distribution_query, (request.genres,))
+    distribution = execute_query(distribution_query, panel_params + (request.genres,))
 
-    return {
+    response = {
         "genres": request.genres,
         "prediction": {
             "mean_rating": result["predicted_rating"],
@@ -102,6 +123,14 @@ async def predict_rating(request: MoviePredictionRequest):
         },
         "distribution": distribution,
     }
+
+    if request.panel_size:
+        response["panel"] = {
+            "requested_size": request.panel_size,
+            "users_in_results": result["unique_users"],
+        }
+
+    return response
 
 
 @router.get("/similar/{movie_id}")

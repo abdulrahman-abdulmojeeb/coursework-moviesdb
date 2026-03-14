@@ -178,6 +178,51 @@ async def get_low_rater_patterns():
     return execute_query(query)
 
 
+@router.get("/low-rater-genres")
+async def get_low_rater_genre_analysis():
+    query = """
+        WITH harsh_critics AS (
+            SELECT user_id
+            FROM rating
+            GROUP BY user_id
+            HAVING COUNT(*) >= 20 AND AVG(rating) <= 2.5
+        ),
+        harsh_genre_avg AS (
+            SELECT
+                g.name as genre,
+                ROUND(AVG(r.rating)::numeric, 2) as harsh_avg,
+                COUNT(*) as harsh_rating_count
+            FROM rating r
+            JOIN movie_genre mg ON r.movie_id = mg.movie_id
+            JOIN genre g ON mg.genre_id = g.genre_id
+            WHERE r.user_id IN (SELECT user_id FROM harsh_critics)
+            GROUP BY g.name
+            HAVING COUNT(*) >= 10
+        ),
+        overall_genre_avg AS (
+            SELECT
+                g.name as genre,
+                ROUND(AVG(r.rating)::numeric, 2) as overall_avg,
+                COUNT(*) as overall_rating_count
+            FROM rating r
+            JOIN movie_genre mg ON r.movie_id = mg.movie_id
+            JOIN genre g ON mg.genre_id = g.genre_id
+            GROUP BY g.name
+        )
+        SELECT
+            o.genre,
+            h.harsh_avg,
+            o.overall_avg,
+            ROUND((o.overall_avg - h.harsh_avg)::numeric, 2) as gap,
+            h.harsh_rating_count,
+            o.overall_rating_count
+        FROM overall_genre_avg o
+        JOIN harsh_genre_avg h ON o.genre = h.genre
+        ORDER BY h.harsh_avg ASC
+    """
+    return execute_query(query)
+
+
 @router.get("/consistency")
 async def get_rating_consistency(
     genre: Optional[str] = Query(None, max_length=100),

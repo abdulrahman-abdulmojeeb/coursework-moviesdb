@@ -88,6 +88,10 @@ export interface PredictionResult {
     based_on_ratings: number
   }
   distribution: RatingDistribution[]
+  panel?: {
+    requested_size: number
+    users_in_results: number
+  }
 }
 
 export interface PersonalityTrait {
