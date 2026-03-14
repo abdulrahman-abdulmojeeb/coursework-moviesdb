@@ -155,7 +155,7 @@ export default function SearchFilters({
               <SelectContent>
                 <SelectItem value="title">Title</SelectItem>
                 <SelectItem value="year">Year</SelectItem>
-                <SelectItem value="rating">Rating</SelectItem>
+                <SelectItem value="rating">MovieLens Rating</SelectItem>
                 <SelectItem value="weighted_rating">Weighted Rating</SelectItem>
               </SelectContent>
             </Select>
