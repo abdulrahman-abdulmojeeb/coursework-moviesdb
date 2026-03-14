@@ -113,7 +113,11 @@ if ! command -v unzip &>/dev/null; then
     preflight_ok=false
 fi
 
-if lsof -iTCP:5432 -sTCP:LISTEN &>/dev/null 2>&1 || ss -tlnp 2>/dev/null | grep -q ':5432 '; then
+# Check if port 5432 is in use by something other than our own container
+if docker inspect --format='{{.State.Running}}' moviesdb-postgres 2>/dev/null | grep -q true; then
+    # Our container is running — stop it so we can re-setup cleanly
+    docker compose down >> "$LOG" 2>&1 || true
+elif lsof -iTCP:5432 -sTCP:LISTEN &>/dev/null 2>&1 || ss -tlnp 2>/dev/null | grep -q ':5432 '; then
     echo -e "  ${YELLOW}⚠${RESET}  Port ${BOLD}5432${RESET} is already in use (local PostgreSQL running?)."
     echo -e "     Stop the local database first, or the setup will fail."
     preflight_ok=false
