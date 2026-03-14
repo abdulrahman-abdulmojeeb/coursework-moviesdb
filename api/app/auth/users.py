@@ -64,6 +64,10 @@ def get_password_hash(password: str) -> str:
     ).decode()
 
 
+# Pre-computed hash for constant-time login on invalid usernames
+_DUMMY_HASH = bcrypt.hashpw(b"dummy", bcrypt.gensalt()).decode()
+
+
 def decode_token(token: str) -> Optional[TokenPayload]:
     settings = get_settings()
     try:
@@ -109,7 +113,7 @@ async def register(user_data: UserCreate):
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered",
+            detail="Registration failed. Please try a different username or email.",
         )
 
     if user_data.email:
@@ -117,7 +121,7 @@ async def register(user_data: UserCreate):
         if existing_email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered",
+                detail="Registration failed. Please try a different username or email.",
             )
 
     password_hash = get_password_hash(user_data.password)
@@ -130,7 +134,16 @@ async def register(user_data: UserCreate):
 async def login(login_data: LoginRequest):
     user = user_db.get_user_by_username(login_data.username)
 
-    if not user or not verify_password(login_data.password, user["password_hash"]):
+    if not user:
+        # Constant-time: always run bcrypt even when user doesn't exist
+        bcrypt.checkpw(login_data.password.encode(), _DUMMY_HASH.encode())
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not verify_password(login_data.password, user["password_hash"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",

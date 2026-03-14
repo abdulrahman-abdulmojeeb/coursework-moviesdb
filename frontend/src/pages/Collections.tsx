@@ -85,6 +85,7 @@ export default function Collections() {
     }) => collectionsApi.removeMovie(collectionId, movieId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["collection", selectedCollection] })
+      queryClient.invalidateQueries({ queryKey: ["collections"] })
     },
   })
 

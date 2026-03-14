@@ -104,8 +104,9 @@ export default function MovieDetail() {
   const addMovieMutation = useMutation({
     mutationFn: (collectionId: number) =>
       collectionsApi.addMovie(collectionId, movieId),
-    onSuccess: () => {
+    onSuccess: (_data, collectionId) => {
       queryClient.invalidateQueries({ queryKey: ["collections"] })
+      queryClient.invalidateQueries({ queryKey: ["collection", collectionId] })
     },
   })
 
@@ -125,12 +126,20 @@ export default function MovieDetail() {
 
   const ratingMutation = useMutation({
     mutationFn: (rating: number) => appRatingsApi.addOrUpdate(movieId, rating),
-    onSuccess: () => refetchMyRating(),
+    onSuccess: () => {
+      refetchMyRating()
+      queryClient.invalidateQueries({ queryKey: ["my-ratings"] })
+      queryClient.invalidateQueries({ queryKey: ["recommendations"] })
+    },
   })
 
   const deleteRatingMutation = useMutation({
     mutationFn: () => appRatingsApi.delete(movieId),
-    onSuccess: () => refetchMyRating(),
+    onSuccess: () => {
+      refetchMyRating()
+      queryClient.invalidateQueries({ queryKey: ["my-ratings"] })
+      queryClient.invalidateQueries({ queryKey: ["recommendations"] })
+    },
   })
 
   if (isLoading) {
@@ -152,7 +161,7 @@ export default function MovieDetail() {
   if (error || !movie) {
     return (
       <div className="space-y-4">
-        <Button variant="ghost" onClick={() => navigate(-1)}>
+        <Button variant="ghost" onClick={() => navigate("/")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
@@ -183,7 +192,7 @@ export default function MovieDetail() {
 
         <div className="relative pt-4 pb-8">
           <div className="flex items-center justify-between mb-4">
-            <Button variant="ghost" onClick={() => navigate(-1)}>
+            <Button variant="ghost" onClick={() => navigate("/")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>

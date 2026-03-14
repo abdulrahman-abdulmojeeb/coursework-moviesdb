@@ -1,5 +1,12 @@
+import logging
+import os
+
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+
+logger = logging.getLogger(__name__)
+
+_DEFAULT_SECRET = "your-secret-key-change-in-production"
 
 
 class Settings(BaseSettings):
@@ -7,7 +14,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://moviesdb:moviesdb@db:5432/moviesdb"
 
     # Security
-    secret_key: str = "your-secret-key-change-in-production"
+    secret_key: str = _DEFAULT_SECRET
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
@@ -26,4 +33,12 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    settings = Settings()
+    if settings.secret_key == _DEFAULT_SECRET:
+        env = os.environ.get("ENVIRONMENT", "development")
+        if env.lower() in ("production", "prod"):
+            raise RuntimeError(
+                "SECRET_KEY must be changed from the default value in production"
+            )
+        logger.warning("Using default SECRET_KEY — do not use in production")
+    return settings

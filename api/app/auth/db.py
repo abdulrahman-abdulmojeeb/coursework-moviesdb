@@ -31,6 +31,9 @@ def create_user(username: str, email: Optional[str], password_hash: str) -> dict
     return execute_returning(query, (username, email, password_hash, datetime.utcnow(), True))
 
 
+_ALLOWED_UPDATE_FIELDS = {"username", "email", "password_hash"}
+
+
 def update_user(user_id: int, updates: dict) -> Optional[dict]:
     if not updates:
         return get_user_by_id(user_id)
@@ -39,6 +42,8 @@ def update_user(user_id: int, updates: dict) -> Optional[dict]:
     params = []
 
     for field, value in updates.items():
+        if field not in _ALLOWED_UPDATE_FIELDS:
+            raise ValueError(f"Field not allowed: {field}")
         set_clauses.append(f"{field} = %s")
         params.append(value)
 

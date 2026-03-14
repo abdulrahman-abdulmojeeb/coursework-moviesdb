@@ -64,8 +64,8 @@ async def get_rating_patterns():
 
 @router.get("/cross-genre")
 async def get_cross_genre_preferences(
-    source_genre: str = Query(..., description="Genre to analyze preferences from"),
-    min_ratings: int = Query(10, ge=1, description="Minimum ratings in source genre"),
+    source_genre: str = Query(..., max_length=100, description="Genre to analyze preferences from"),
+    min_ratings: int = Query(10, ge=1, le=1000, description="Minimum ratings in source genre"),
 ):
     query = """
         WITH genre_lovers AS (
@@ -142,7 +142,7 @@ async def get_low_rater_patterns():
 
 @router.get("/consistency")
 async def get_rating_consistency(
-    genre: Optional[str] = None,
+    genre: Optional[str] = Query(None, max_length=100),
 ):
     genre_filter = ""
     params = ()
@@ -202,6 +202,7 @@ async def add_rating(
 @router.get("/my-ratings")
 async def get_my_ratings(
     current_user: UserRead = Depends(get_current_user),
+    limit: int = Query(500, ge=1, le=1000),
 ):
     return execute_query(
         """
@@ -210,8 +211,9 @@ async def get_my_ratings(
         JOIN movie m ON aur.movie_id = m.movie_id
         WHERE aur.user_id = %s
         ORDER BY aur.timestamp DESC
+        LIMIT %s
         """,
-        (current_user.id,)
+        (current_user.id, limit)
     )
 
 @router.get("/my-ratings/{movie_id}")

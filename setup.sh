@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 TOTAL_STEPS=11
 CURRENT_STEP=0
@@ -129,7 +129,7 @@ if [ "$preflight_ok" = false ]; then
 fi
 
 # Handle --reset flag: tear down containers and volumes for a clean start
-if [ "$1" = "--reset" ]; then
+if [ "${1:-}" = "--reset" ]; then
     echo -e "  ${YELLOW}Resetting...${RESET} removing containers and database volume"
     docker compose down -v >> "$LOG" 2>&1 || true
     echo -e "  ${GREEN}✔${RESET}  Reset complete, starting fresh setup"
@@ -252,10 +252,12 @@ else
 fi
 
 step "Create default user"
+# Generate a random password if not provided via DEFAULT_PASSWORD env var
+DEFAULT_PASSWORD="${DEFAULT_PASSWORD:-$(openssl rand -base64 12)}"
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
     -X POST http://localhost:8000/api/auth/register \
     -H "Content-Type: application/json" \
-    -d '{"username":"admin","password":"comp22"}')
+    -d "{\"username\":\"admin\",\"password\":\"$DEFAULT_PASSWORD\"}")
 
 if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "400" ]; then
     done_step
@@ -270,7 +272,11 @@ echo ""
 echo -e "  Frontend   ${BOLD}http://localhost:5173${RESET}"
 echo -e "  API Docs   ${BOLD}http://localhost:8000/docs${RESET}"
 echo ""
-echo -e "  Default login"
-echo -e "  Username   ${BOLD}admin${RESET}"
-echo -e "  Password   ${BOLD}comp22${RESET}"
+if [ "$HTTP_CODE" = "201" ]; then
+    echo -e "  Default login"
+    echo -e "  Username   ${BOLD}admin${RESET}"
+    echo -e "  Password   ${BOLD}$DEFAULT_PASSWORD${RESET}"
+else
+    echo -e "  ${DIM}User 'admin' already exists — password unchanged.${RESET}"
+fi
 echo ""

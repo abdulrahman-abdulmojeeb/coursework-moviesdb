@@ -25,8 +25,8 @@ def init_db_pool(min_connections: int = 1, max_connections: int = 10) -> None:
             settings.database_url,
         )
         logger.info("Database connection pool initialized")
-    except psycopg2.Error as e:
-        logger.error(f"Failed to initialize database pool: {e}")
+    except psycopg2.Error:
+        logger.error("Failed to initialize database pool")
         raise
 
 
@@ -50,10 +50,10 @@ def get_db_connection() -> Generator:
         connection = connection_pool.getconn()
         yield connection
         connection.commit()
-    except psycopg2.Error as e:
+    except psycopg2.Error:
         if connection:
             connection.rollback()
-        logger.error(f"Database error: {e}")
+        logger.error("Database error occurred")
         raise
     finally:
         if connection:

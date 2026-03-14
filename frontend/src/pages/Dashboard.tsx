@@ -1,5 +1,6 @@
-import { useState } from "react"
+import { useCallback } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { useSearchParams } from "react-router-dom"
 import { moviesApi, genresApi } from "../services/api"
 import type { Movie, PaginatedResponse } from "../types"
 import MovieCard from "../components/MovieCard"
@@ -9,19 +10,51 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
 
+const DEFAULTS = {
+  page: 1,
+  limit: 20,
+  title: "",
+  genre: "",
+  year_from: undefined as number | undefined,
+  year_to: undefined as number | undefined,
+  min_rating: undefined as number | undefined,
+  sort_by: "title",
+  sort_order: "asc",
+  director: "",
+}
+
+function filtersFromParams(params: URLSearchParams) {
+  return {
+    page: Number(params.get("page")) || DEFAULTS.page,
+    limit: DEFAULTS.limit,
+    title: params.get("title") || DEFAULTS.title,
+    genre: params.get("genre") || DEFAULTS.genre,
+    year_from: params.get("year_from") ? Number(params.get("year_from")) : DEFAULTS.year_from,
+    year_to: params.get("year_to") ? Number(params.get("year_to")) : DEFAULTS.year_to,
+    min_rating: params.get("min_rating") ? Number(params.get("min_rating")) : DEFAULTS.min_rating,
+    sort_by: params.get("sort_by") || DEFAULTS.sort_by,
+    sort_order: params.get("sort_order") || DEFAULTS.sort_order,
+    director: params.get("director") || DEFAULTS.director,
+  }
+}
+
+function filtersToParams(filters: typeof DEFAULTS) {
+  const params = new URLSearchParams()
+  if (filters.page > 1) params.set("page", String(filters.page))
+  if (filters.title) params.set("title", filters.title)
+  if (filters.genre) params.set("genre", filters.genre)
+  if (filters.year_from != null) params.set("year_from", String(filters.year_from))
+  if (filters.year_to != null) params.set("year_to", String(filters.year_to))
+  if (filters.min_rating != null) params.set("min_rating", String(filters.min_rating))
+  if (filters.sort_by !== DEFAULTS.sort_by) params.set("sort_by", filters.sort_by)
+  if (filters.sort_order !== DEFAULTS.sort_order) params.set("sort_order", filters.sort_order)
+  if (filters.director) params.set("director", filters.director)
+  return params
+}
+
 export default function Dashboard() {
-  const [filters, setFilters] = useState({
-    page: 1,
-    limit: 20,
-    title: "",
-    genre: "",
-    year_from: undefined as number | undefined,
-    year_to: undefined as number | undefined,
-    min_rating: undefined as number | undefined,
-    sort_by: "title",
-    sort_order: "asc",
-    director: "",
-  })
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filters = filtersFromParams(searchParams)
 
   const { data: genres } = useQuery({
     queryKey: ["genres"],
@@ -34,13 +67,13 @@ export default function Dashboard() {
       moviesApi.getMovies(filters).then((res) => res.data as PaginatedResponse<Movie>),
   })
 
-  const handleFilterChange = (newFilters: Partial<typeof filters>) => {
-    setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }))
-  }
+  const handleFilterChange = useCallback((newFilters: Partial<typeof DEFAULTS>) => {
+    setSearchParams(filtersToParams({ ...filters, ...newFilters, page: 1 }), { replace: true })
+  }, [filters, setSearchParams])
 
-  const handlePageChange = (page: number) => {
-    setFilters((prev) => ({ ...prev, page }))
-  }
+  const handlePageChange = useCallback((page: number) => {
+    setSearchParams(filtersToParams({ ...filters, page }), { replace: true })
+  }, [filters, setSearchParams])
 
   return (
     <div className="space-y-6">

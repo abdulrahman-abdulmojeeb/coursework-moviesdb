@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from typing import Optional
 import io
 
 from app.database import execute_query, execute_query_one, get_db_connection
 from app.helpers import build_poster_url
+from app.auth.users import get_current_user
 
 router = APIRouter()
 
@@ -13,14 +14,14 @@ router = APIRouter()
 async def get_movies(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    title: Optional[str] = None,
-    genre: Optional[str] = None,
+    title: Optional[str] = Query(None, max_length=200),
+    genre: Optional[str] = Query(None, max_length=100),
     year_from: Optional[int] = None,
     year_to: Optional[int] = None,
     min_rating: Optional[float] = Query(None, ge=0, le=5),
     sort_by: str = Query("title", regex="^(title|year|rating|weighted_rating)$"),
     sort_order: str = Query("asc", regex="^(asc|desc)$"),
-    director: Optional[str] = None,
+    director: Optional[str] = Query(None, max_length=200),
 ):
     offset = (page - 1) * limit
 
@@ -170,7 +171,7 @@ async def get_movies(
 
 
 @router.get("/export/enrichment.sql")
-async def export_enrichment_sql():
+async def export_enrichment_sql(_=Depends(get_current_user)):
     buf = io.BytesIO()
 
     with get_db_connection() as conn:

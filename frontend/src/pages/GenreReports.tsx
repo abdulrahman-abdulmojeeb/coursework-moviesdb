@@ -1,14 +1,4 @@
 import { useQuery } from "@tanstack/react-query"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts"
 import { genresApi } from "../services/api"
 import type { GenrePopularity, GenrePolarisation } from "../types"
 import {
@@ -52,13 +42,6 @@ export default function GenreReports() {
     avg_rating: avgRatingMap.get(p.genre) ?? null,
   }))
 
-  const getBarColor = (value: number) => {
-    if (value >= 4) return "#22c55e"
-    if (value >= 3.5) return "#30bfc2"
-    if (value >= 3) return "#eab308"
-    return "#ef4444"
-  }
-
   return (
     <div className="space-y-6">
       <div>
@@ -69,37 +52,7 @@ export default function GenreReports() {
       </div>
 
       {isLoading && (
-        <div className="space-y-6">
-          <Skeleton className="h-96 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      )}
-
-      {popularity && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Genre Popularity by Average Rating</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 sm:h-80 md:h-96">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={popularity} layout="vertical" margin={{ left: 60, right: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" domain={[0, 5]} />
-                  <YAxis type="category" dataKey="genre" width={80} />
-                  <Tooltip
-                    formatter={(value?: number) => [value?.toFixed(2) ?? "", "Avg Rating"]}
-                  />
-                  <Bar dataKey="avg_rating">
-                    {popularity.map((entry, index) => (
-                      <Cell key={index} fill={getBarColor(entry.avg_rating)} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <Skeleton className="h-64 w-full" />
       )}
 
       {genreAnalysis && (

@@ -39,7 +39,11 @@ export default function MyRatings() {
 
   const deleteMutation = useMutation({
     mutationFn: (movieId: number) => appRatingsApi.delete(movieId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-ratings"] }),
+    onSuccess: (_data, movieId) => {
+      queryClient.invalidateQueries({ queryKey: ["my-ratings"] })
+      queryClient.invalidateQueries({ queryKey: ["my-rating", movieId] })
+      queryClient.invalidateQueries({ queryKey: ["recommendations"] })
+    },
   })
 
   const sorted = [...(ratings ?? [])].sort((a, b) => {

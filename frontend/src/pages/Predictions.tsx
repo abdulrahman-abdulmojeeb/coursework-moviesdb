@@ -283,12 +283,12 @@ export default function Predictions() {
       <InfoCard>
         <p>
           <strong>Data Source:</strong> Predictions are based on the{" "}
-          
+          <a
             href="https://grouplens.org/datasets/movielens/"
             target="_blank"
             rel="noopener noreferrer"
             className="underline"
-          <a>
+          >
             MovieLens ml-latest-small dataset
           </a>{" "}
           containing 100,000 ratings from 600 users across 9,700 movies.

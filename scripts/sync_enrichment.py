@@ -79,7 +79,11 @@ def main():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    allowed_tables = {"movie_detail", "external_ratings"}
     for table_name, data in blocks:
+        if table_name not in allowed_tables:
+            print(f"  Skipping unexpected table: {table_name}")
+            continue
         cursor.execute(f"TRUNCATE {table_name}")
         print(f"  Loading {table_name}...")
         cursor.copy_expert(f"COPY {table_name} FROM STDIN", io.StringIO(data))

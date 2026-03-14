@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
@@ -10,13 +10,13 @@ router = APIRouter()
 
 
 class CollectionCreate(BaseModel):
-    title: str
-    note: Optional[str] = None
+    title: str = Field(..., min_length=1, max_length=255)
+    note: Optional[str] = Field(None, max_length=2000)
 
 
 class CollectionUpdate(BaseModel):
-    title: Optional[str] = None
-    note: Optional[str] = None
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    note: Optional[str] = Field(None, max_length=2000)
 
 
 class CollectionItemAdd(BaseModel):

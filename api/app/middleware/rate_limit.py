@@ -12,6 +12,9 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
+# Cap tracked IPs to prevent memory exhaustion from spoofed addresses
+_MAX_TRACKED_IPS = 10_000
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
@@ -35,12 +38,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._last_cleanup = time.time()
 
     def _get_client_ip(self, request: Request) -> str:
-        """Get client IP address from request."""
-        # Check for X-Forwarded-For header (behind proxy)
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        # Fall back to direct client IP
+        """Get client IP from request, preferring X-Real-IP set by nginx."""
+        # X-Real-IP is set by our nginx proxy to $remote_addr (not spoofable)
+        real_ip = request.headers.get("X-Real-IP")
+        if real_ip:
+            return real_ip.strip()
+        # Fall back to direct client IP (correct when not behind a proxy)
         return request.client.host if request.client else "unknown"
 
     def _cleanup_old_requests(self, now: float) -> None:
@@ -101,7 +104,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 },
             )
 
-        # Record this request
+        # Record this request (evict oldest entries if at capacity)
+        if len(self._requests) >= _MAX_TRACKED_IPS and client_ip not in self._requests:
+            oldest_ip = min(self._requests, key=lambda ip: self._requests[ip][0] if self._requests[ip] else 0)
+            del self._requests[oldest_ip]
         self._requests[client_ip].append(time.time())
 
         # Add rate limit headers to response

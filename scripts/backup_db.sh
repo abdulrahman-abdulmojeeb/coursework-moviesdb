@@ -4,9 +4,9 @@
 
 set -euo pipefail
 
-CONTAINER_NAME="coursework-moviesdb-db-1"
+CONTAINER_NAME="moviesdb-postgres"
 DB_NAME="${POSTGRES_DB:-moviesdb}"
-DB_USER="${POSTGRES_USER:-postgres}"
+DB_USER="${POSTGRES_USER:-moviesdb}"
 OUTPUT="${1:-db_backup_$(date +%Y%m%d_%H%M%S).sql}"
 
 echo "Backing up $DB_NAME..."

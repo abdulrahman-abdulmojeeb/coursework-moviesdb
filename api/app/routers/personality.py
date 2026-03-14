@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from app.database import execute_query
 
 router = APIRouter()
+
+_ALLOWED_TRAITS = {"openness", "agreeableness", "emotional_stability", "conscientiousness", "extraversion"}
+
 
 @router.get("/traits")
 async def get_personality_traits():
@@ -43,6 +46,9 @@ async def get_personality_genre_correlation(
     ),
     threshold: str = Query("high", regex="^(high|low)$"),
 ):
+    if trait not in _ALLOWED_TRAITS:
+        raise HTTPException(status_code=400, detail="Invalid trait")
+
     # Dataset mean for the requested trait (used to split high / low).
     # Scores range 1-7; empirically the mean sits near 4.5, but we compute it
     # dynamically so the split is always relative to the actual data.
@@ -92,7 +98,7 @@ async def get_personality_genre_correlation(
 
 @router.get("/genre-traits")
 async def get_genre_personality_profile(
-    genre: str = Query(..., description="Genre name to analyse"),
+    genre: str = Query(..., max_length=100, description="Genre name to analyse"),
 ):
     # Users who gave an above-average predicted rating to >= 3 films in
     # the requested genre (mirrors the original "avg rating >= 4.0, count >= 5"

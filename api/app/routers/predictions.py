@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.database import execute_query, execute_query_one
@@ -9,7 +9,7 @@ router = APIRouter()
 
 
 class MoviePredictionRequest(BaseModel):
-    genres: list[str]
+    genres: list[str] = Field(..., min_length=1, max_length=20)
 
 
 @router.post("/predict")

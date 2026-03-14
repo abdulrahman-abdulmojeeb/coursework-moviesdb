@@ -1,8 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
-import os
 
 from app.config import get_settings
 from app.database import init_db_pool, close_db_pool
@@ -42,17 +42,16 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
-# Add rate limiting middleware (only in production or if explicitly enabled)
-if os.environ.get("ENABLE_RATE_LIMIT", "").lower() == "true":
-    app.add_middleware(
-        RateLimitMiddleware,
-        requests_per_minute=120,  # 2 requests per second average
-        requests_per_second=20,   # Burst limit
-    )
+# Rate limiting — always enabled with generous defaults
+app.add_middleware(
+    RateLimitMiddleware,
+    requests_per_minute=300,
+    requests_per_second=30,
+)
 
 # Include routers
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
@@ -62,6 +61,15 @@ app.include_router(ratings.router, prefix="/api/ratings", tags=["Ratings"])
 app.include_router(predictions.router, prefix="/api/predictions", tags=["Predictions"])
 app.include_router(personality.router, prefix="/api/personality", tags=["Personality"])
 app.include_router(collections.router, prefix="/api/collections", tags=["Collections"])
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 
 @app.get("/")

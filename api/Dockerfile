@@ -19,9 +19,14 @@ RUN apt-get update && apt-get install -y \
 # Copy installed Python packages from builder
 COPY --from=builder /install /usr/local
 
+RUN useradd -r -s /bin/false appuser
+
 WORKDIR /app
 COPY . .
+RUN chown -R appuser:appuser /app
+
+USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
