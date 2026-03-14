@@ -26,7 +26,6 @@ import {
   Film,
   Award,
   Plus,
-  Check,
   Info
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -183,10 +182,52 @@ export default function MovieDetail() {
         )}
 
         <div className="relative pt-4 pb-8">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
+          <div className="flex items-center justify-between mb-4">
+            <Button variant="ghost" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+
+            {isLoggedIn() ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Add to Collection</span>
+                    <span className="sm:hidden">Collection</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {collectionsData && collectionsData.length > 0 ? (
+                    <>
+                      <DropdownMenuLabel>Your Collections</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {collectionsData.map((collection: { collection_id: number; title: string }) => (
+                        <DropdownMenuItem
+                          key={collection.collection_id}
+                          onClick={() => addMovieMutation.mutate(collection.collection_id)}
+                          disabled={addMovieMutation.isPending}
+                        >
+                          {collection.title}
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                    </>
+                  ) : null}
+                  <DropdownMenuItem onClick={() => navigate("/collections")}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Collection
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => navigate("/profile")}>
+                <Plus className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Add to Collection</span>
+                <span className="sm:hidden">Collection</span>
+              </Button>
+            )}
+          </div>
 
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-shrink-0 mx-auto md:mx-0">
@@ -278,51 +319,6 @@ export default function MovieDetail() {
                     </button>
                   )}
                 </div>
-              )}
-
-              {isLoggedIn() ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      <span className="hidden sm:inline">Add to Collection</span>
-                      <span className="sm:hidden">Collection</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    {collectionsData && collectionsData.length > 0 ? (
-                      <>
-                        <DropdownMenuLabel>Your Collections</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {collectionsData.map((collection: { collection_id: number; title: string }) => (
-                          <DropdownMenuItem
-                            key={collection.collection_id}
-                            onClick={() => addMovieMutation.mutate(collection.collection_id)}
-                            disabled={addMovieMutation.isPending}
-                          >
-                            {addMovieMutation.isPending ? (
-                              <Check className="h-4 w-4 mr-2 text-green-500" />
-                            ) : (
-                              <Plus className="h-4 w-4 mr-2" />
-                            )}
-                            {collection.title}
-                          </DropdownMenuItem>
-                        ))}
-                        <DropdownMenuSeparator />
-                      </>
-                    ) : null}
-                    <DropdownMenuItem onClick={() => navigate("/collections")}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Collection
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Button variant="outline" size="sm" onClick={() => navigate("/profile")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Add to Collection</span>
-                  <span className="sm:hidden">Collection</span>
-                </Button>
               )}
 
               {movie.overview && (
