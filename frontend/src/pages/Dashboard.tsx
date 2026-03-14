@@ -32,7 +32,7 @@ function filtersFromParams(params: URLSearchParams) {
     year_from: params.get("year_from") ? Number(params.get("year_from")) : DEFAULTS.year_from,
     year_to: params.get("year_to") ? Number(params.get("year_to")) : DEFAULTS.year_to,
     min_rating: params.get("min_rating") ? Number(params.get("min_rating")) : DEFAULTS.min_rating,
-    sort_by: params.get("sort_by") || DEFAULTS.sort_by,
+    sort_by: (params.get("sort_by") === "rating" ? "weighted_rating" : params.get("sort_by")) || DEFAULTS.sort_by,
     sort_order: params.get("sort_order") || DEFAULTS.sort_order,
     director: params.get("director") || DEFAULTS.director,
   }

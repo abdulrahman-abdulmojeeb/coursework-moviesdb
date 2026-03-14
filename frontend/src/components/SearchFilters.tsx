@@ -122,6 +122,7 @@ export default function SearchFilters({
               onValueChange={(value) =>
                 onFilterChange({
                   min_rating: value === "any" ? undefined : parseFloat(value),
+                  ...(value !== "any" ? { sort_by: "weighted_rating", sort_order: "asc" } : {}),
                 })
               }
             >
@@ -155,8 +156,7 @@ export default function SearchFilters({
               <SelectContent>
                 <SelectItem value="title">Title</SelectItem>
                 <SelectItem value="year">Year</SelectItem>
-                <SelectItem value="rating">MovieLens Rating</SelectItem>
-                <SelectItem value="weighted_rating">Weighted Rating</SelectItem>
+                <SelectItem value="weighted_rating">Rating</SelectItem>
               </SelectContent>
             </Select>
           </div>
