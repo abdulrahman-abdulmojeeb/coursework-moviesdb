@@ -75,18 +75,7 @@ CREATE TABLE IF NOT EXISTS personality_predicted_rating (
     predicted_rating DECIMAL(6,4) NOT NULL
 );
 
--- Pre-computed: average personality traits of people who rated a genre highly (derived from personality_predicted_rating joined with movie_genre)
-CREATE TABLE IF NOT EXISTS genre_personality_profile (
-    genre_id INTEGER NOT NULL REFERENCES genre(genre_id) ON DELETE CASCADE,
-    avg_openness DECIMAL(4,2),
-    avg_agreeableness DECIMAL(4,2),
-    avg_emotional_stability DECIMAL(4,2),
-    avg_conscientiousness DECIMAL(4,2),
-    avg_extraversion DECIMAL(4,2),
-    sample_size INTEGER,
-    computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (genre_id)
-);
+
 
 -- Application User Tables (Requirement 6)
 CREATE TABLE IF NOT EXISTS app_user (

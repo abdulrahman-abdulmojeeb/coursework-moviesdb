@@ -39,7 +39,7 @@ def import_dataset_users(cursor, csv_path: str) -> dict:
     Also returns the raw predicted-rating data keyed by hashed_user_id so
     step 2 doesn't need to re-read the file.
     """
-    print("\n[1/3] Importing personality_dataset_user …")
+    print("\n[1/2] Importing personality_dataset_user …")
 
     user_rows = []        # (hashed_user_id, openness, …, assigned_metric, assigned_condition)
     predicted_raw = {}    # hashed_user_id -> [(movie_id, predicted_rating), …]
@@ -117,7 +117,7 @@ def import_predicted_ratings(cursor, id_map: dict, predicted_raw: dict, valid_mo
     Insert predicted ratings for every dataset user, skipping any movie_id
     that doesn't exist in the `movie` table.
     """
-    print("\n[2/3] Importing personality_predicted_rating …")
+    print("\n[2/2] Importing personality_predicted_rating …")
 
     rating_rows = []
     skipped_movies = set()
@@ -151,53 +151,7 @@ def import_predicted_ratings(cursor, id_map: dict, predicted_raw: dict, valid_mo
         print(f"    Skipped {len(skipped_movies)} movie_ids not found in `movie` table "
               f"(e.g. {sorted(skipped_movies)[:5]} …)")
 
-def recompute_genre_profiles(cursor):
-    """
-    Truncate and recompute genre_personality_profile from the newly imported
-    predicted ratings.
 
-    A "genre lover" is a dataset user whose average predicted rating for films
-    in that genre is >= 4.0 (with at least 3 such films).
-    Their Big Five scores are averaged to produce the genre's personality profile.
-    """
-    print("\n[3/3] Recomputing genre_personality_profile …")
-
-    cursor.execute("DELETE FROM genre_personality_profile")
-
-    cursor.execute("""
-        INSERT INTO genre_personality_profile
-            (genre_id, avg_openness, avg_agreeableness, avg_emotional_stability,
-             avg_conscientiousness, avg_extraversion, sample_size, computed_at)
-
-        WITH genre_lovers AS (
-            -- For each (user, genre) pair, check if they're a "genre lover"
-            SELECT
-                ppr.personality_user_id,
-                mg.genre_id
-            FROM personality_predicted_rating ppr
-            JOIN movie_genre mg ON ppr.movie_id = mg.movie_id
-            GROUP BY ppr.personality_user_id, mg.genre_id
-            HAVING AVG(ppr.predicted_rating) >= 4.0
-               AND COUNT(*)                 >= 3
-        )
-        SELECT
-            gl.genre_id,
-            ROUND(AVG(p.openness)::numeric,            2),
-            ROUND(AVG(p.agreeableness)::numeric,       2),
-            ROUND(AVG(p.emotional_stability)::numeric, 2),
-            ROUND(AVG(p.conscientiousness)::numeric,   2),
-            ROUND(AVG(p.extraversion)::numeric,        2),
-            COUNT(*)                                       AS sample_size,
-            NOW()
-        FROM genre_lovers gl
-        JOIN personality_dataset_user p ON gl.personality_user_id = p.id
-        GROUP BY gl.genre_id
-        HAVING COUNT(*) >= 5
-    """)
-
-    cursor.execute("SELECT COUNT(*) FROM genre_personality_profile")
-    count = cursor.fetchone()[0]
-    print(f"    Computed profiles for {count} genres.")
 
 def print_summary(cursor):
     print("\n" + "=" * 50)
@@ -210,26 +164,9 @@ def print_summary(cursor):
     cursor.execute("SELECT COUNT(*) FROM personality_predicted_rating")
     print(f"  personality_predicted_rating: {cursor.fetchone()[0]:>6} rows")
 
-    cursor.execute("SELECT COUNT(*) FROM genre_personality_profile")
-    print(f"  genre_personality_profile   : {cursor.fetchone()[0]:>6} rows")
 
-    cursor.execute("""
-        SELECT g.name,
-               gpp.avg_openness,
-               gpp.avg_extraversion,
-               gpp.sample_size
-        FROM genre_personality_profile gpp
-        JOIN genre g ON gpp.genre_id = g.genre_id
-        ORDER BY gpp.avg_openness DESC
-        LIMIT 10
-    """)
-    rows = cursor.fetchall()
-    if rows:
-        print("\n  Top 10 genres by avg openness (spot-check):")
-        print(f"  {'Genre':<20} {'Openness':>8} {'Extraversion':>13} {'Sample':>7}")
-        print(f"  {'-'*20} {'-'*8} {'-'*13} {'-'*7}")
-        for name, op, ex, n in rows:
-            print(f"  {name:<20} {op:>8} {ex:>13} {n:>7}")
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="Import Personality 2018 dataset")
@@ -258,7 +195,6 @@ def main():
 
         id_map, predicted_raw = import_dataset_users(cursor, args.personality_csv)
         import_predicted_ratings(cursor, id_map, predicted_raw, valid_movie_ids)
-        recompute_genre_profiles(cursor)
 
         conn.commit()
         print_summary(cursor)

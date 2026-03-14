@@ -34,7 +34,7 @@ CREATE INDEX IF NOT EXISTS idx_predicted_rating_user    ON personality_predicted
 CREATE INDEX IF NOT EXISTS idx_predicted_rating_movie   ON personality_predicted_rating (movie_id);
 CREATE INDEX IF NOT EXISTS idx_predicted_rating_value   ON personality_predicted_rating (predicted_rating);
 
-CREATE INDEX IF NOT EXISTS idx_genre_personality_genre  ON genre_personality_profile (genre_id);
+
 
 -- Collection Indexes
 CREATE INDEX IF NOT EXISTS idx_movie_collection_user_id ON movie_collection (user_id);
