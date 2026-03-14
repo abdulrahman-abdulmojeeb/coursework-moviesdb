@@ -11,13 +11,14 @@ EXPECTED_SCHEMAS = {
     "ratings.csv": ["userId", "movieId", "rating", "timestamp"],
     "tags.csv": ["userId", "movieId", "tag", "timestamp"],
     "links.csv": ["movieId", "imdbId", "tmdbId"],
+    "personality-data.csv": ["userid", "openness", "agreeableness", "emotional_stability", "conscientiousness", "extraversion", "assigned metric", "assigned condition", "movie_1", "predicted_rating_1", "movie_2", "predicted_rating_2", "movie_3", "predicted_rating_3", "movie_4", "predicted_rating_4", "movie_5", "predicted_rating_5", "movie_6", "predicted_rating_6", "movie_7", "predicted_rating_7", "movie_8", "predicted_rating_8", "movie_9", "predicted_rating_9", "movie_10", "predicted_rating_10", "movie_11", "predicted_rating_11", "movie_12", "predicted_rating_12", "is_personalized", "enjoy_watching"],
 }
 
 def validate_file(filepath, expected_cols):
     """Check CSV headers match expected schema."""
     with open(filepath, "r", encoding="utf-8") as f:
         reader = csv.reader(f)
-        headers = next(reader)
+        headers = [h.strip() for h in next(reader)]
         if headers != expected_cols:
             print(f"  FAIL: {os.path.basename(filepath)}")
             print(f"    Expected: {expected_cols}")
