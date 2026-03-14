@@ -14,6 +14,27 @@ class AppUserRatingCreate(BaseModel):
 class AppUserRatingUpdate(BaseModel):
     rating: float = Field(..., ge=0.5, le=5.0)
 
+@router.get("/profile")
+async def get_rating_profile():
+    stats = execute_query_one("""
+        SELECT
+            COUNT(*) as total_ratings,
+            COUNT(DISTINCT user_id) as unique_users,
+            COUNT(DISTINCT movie_id) as unique_movies,
+            ROUND(AVG(rating)::numeric, 2) as mean_rating,
+            MIN(rating) as min_rating,
+            MAX(rating) as max_rating,
+            ROUND(STDDEV(rating)::numeric, 2) as stddev_rating
+        FROM rating
+    """)
+    distribution = execute_query("""
+        SELECT rating, COUNT(*) as count,
+               ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER(), 1) as percentage
+        FROM rating GROUP BY rating ORDER BY rating
+    """)
+    return {"stats": stats, "distribution": distribution}
+
+
 @router.get("/patterns")
 async def get_rating_patterns():
     query = """

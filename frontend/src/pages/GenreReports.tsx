@@ -27,7 +27,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import InfoCard from "@/components/InfoCard"
+import { Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export default function GenreReports() {
@@ -42,6 +44,13 @@ export default function GenreReports() {
   })
 
   const isLoading = loadingPopularity || loadingPolarisation
+
+  // Merge avg_rating from popularity into polarisation rows
+  const avgRatingMap = new Map(popularity?.map((p) => [p.genre, p.avg_rating]))
+  const genreAnalysis = polarisation?.map((p) => ({
+    ...p,
+    avg_rating: avgRatingMap.get(p.genre) ?? null,
+  }))
 
   const getBarColor = (value: number) => {
     if (value >= 4) return "#22c55e"
@@ -93,13 +102,13 @@ export default function GenreReports() {
         </Card>
       )}
 
-      {polarisation && (
+      {genreAnalysis && (
         <Card>
           <CardHeader>
-            <CardTitle>Genre Polarisation Analysis</CardTitle>
+            <CardTitle>Genre Analysis</CardTitle>
             <CardDescription>
-              Polarisation score indicates genres with more extreme ratings (love
-              it or hate it).
+              Average ratings and polarisation scores across genres.
+              Polarisation indicates genres with more extreme ratings (love it or hate it).
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -108,16 +117,59 @@ export default function GenreReports() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Genre</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Avg Rating</TableHead>
                   <TableHead className="text-right whitespace-nowrap">Low (%)</TableHead>
                   <TableHead className="text-right whitespace-nowrap">Mid (%)</TableHead>
                   <TableHead className="text-right whitespace-nowrap">High (%)</TableHead>
-                  <TableHead className="text-right whitespace-nowrap">Polarisation</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">
+                    <TooltipProvider>
+                      <UITooltip delayDuration={200}>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center gap-1 cursor-help">
+                            Polarisation
+                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs text-left text-xs leading-relaxed">
+                          <p className="font-semibold mb-1">How polarisation is measured</p>
+                          <p className="mb-1">
+                            Measured by <strong>standard deviation</strong> of all ratings
+                            in the genre (0.5–5.0 scale).
+                          </p>
+                          <p className="mb-1">
+                            Higher stddev = more disagreement among viewers.
+                          </p>
+                          <ul className="list-disc pl-4 space-y-0.5">
+                            <li><strong>&gt; 1.1</strong> — highly polarising</li>
+                            <li><strong>0.95–1.1</strong> — moderately divisive</li>
+                            <li><strong>&lt; 0.95</strong> — general consensus</li>
+                          </ul>
+                          <p className="mt-1 text-muted-foreground">
+                            Only genres with 100+ ratings are included.
+                          </p>
+                        </TooltipContent>
+                      </UITooltip>
+                    </TooltipProvider>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {polarisation.map((genre) => (
+                {genreAnalysis.map((genre) => (
                   <TableRow key={genre.genre}>
                     <TableCell className="font-medium">{genre.genre}</TableCell>
+                    <TableCell className="text-right">
+                      {genre.avg_rating != null ? (
+                        <span className={cn(
+                          "font-semibold",
+                          genre.avg_rating >= 4 ? "text-green-600 dark:text-green-400"
+                            : genre.avg_rating >= 3.5 ? "text-cyan-600 dark:text-cyan-400"
+                            : genre.avg_rating >= 3 ? "text-yellow-600 dark:text-yellow-400"
+                            : "text-red-600 dark:text-red-400"
+                        )}>
+                          {genre.avg_rating.toFixed(2)}
+                        </span>
+                      ) : "—"}
+                    </TableCell>
                     <TableCell className="text-right text-red-600 dark:text-red-400">
                       {genre.low_pct}%
                     </TableCell>
@@ -131,14 +183,14 @@ export default function GenreReports() {
                       <span
                         className={cn(
                           "font-bold",
-                          genre.polarisation_score > 70
+                          genre.polarisation_score > 1.1
                             ? "text-purple-600 dark:text-purple-400"
-                            : genre.polarisation_score > 50
+                            : genre.polarisation_score > 0.95
                               ? "text-orange-600 dark:text-orange-400"
                               : "text-muted-foreground"
                         )}
                       >
-                        {genre.polarisation_score}%
+                        {genre.polarisation_score}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -160,9 +212,9 @@ export default function GenreReports() {
         </p>
         <p>
           <strong>Methodology:</strong> Popularity is measured by average rating across all movies in each genre.
-          Polarisation score indicates how divisive a genre is — calculated as the percentage of ratings that are
-          either very low (≤2) or very high (≥4), excluding middle ratings. Higher polarisation means viewers tend
-          to either love or hate movies in that genre.
+          Polarisation is measured by the standard deviation of all ratings in the genre — higher values indicate
+          more disagreement among viewers. Scores above 1.1 are highly polarising, 0.95–1.1 moderately divisive,
+          and below 0.95 indicate general consensus.
         </p>
       </InfoCard>
     </div>

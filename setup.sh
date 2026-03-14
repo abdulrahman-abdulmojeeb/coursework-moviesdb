@@ -113,6 +113,12 @@ if ! command -v unzip &>/dev/null; then
     preflight_ok=false
 fi
 
+if lsof -iTCP:5432 -sTCP:LISTEN &>/dev/null 2>&1 || ss -tlnp 2>/dev/null | grep -q ':5432 '; then
+    echo -e "  ${YELLOW}⚠${RESET}  Port ${BOLD}5432${RESET} is already in use (local PostgreSQL running?)."
+    echo -e "     Stop the local database first, or the setup will fail."
+    preflight_ok=false
+fi
+
 if [ "$preflight_ok" = false ]; then
     echo ""
     exit 1
@@ -158,12 +164,31 @@ done_step
 step "Start containers"
 docker compose up -d >> "$LOG" 2>&1 || fail_step
 
+# Check if the database container crashed (common with stale volumes)
+sleep 2
+if ! docker inspect --format='{{.State.Running}}' moviesdb-postgres 2>/dev/null | grep -q true; then
+    echo "Database container failed to start. Logs:" >> "$LOG"
+    docker logs moviesdb-postgres >> "$LOG" 2>&1 || true
+    # Auto-recover: remove stale volume and retry
+    printf "\r\033[K  ${YELLOW}⚠${RESET}  Database container crashed — removing stale volume and retrying\n"
+    docker compose down -v >> "$LOG" 2>&1 || true
+    docker compose up -d >> "$LOG" 2>&1 || fail_step
+    sleep 2
+    if ! docker inspect --format='{{.State.Running}}' moviesdb-postgres 2>/dev/null | grep -q true; then
+        echo "Database still failing after volume reset. Logs:" >> "$LOG"
+        docker logs moviesdb-postgres >> "$LOG" 2>&1 || true
+        fail_step
+    fi
+fi
+
 MAX_RETRIES=30
 RETRY_COUNT=0
 until curl -sf http://localhost:8000/health > /dev/null 2>&1; do
     RETRY_COUNT=$((RETRY_COUNT + 1))
     if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
         echo "API failed to start after $MAX_RETRIES attempts" >> "$LOG"
+        docker logs moviesdb-postgres >> "$LOG" 2>&1 || true
+        docker logs moviesdb-api >> "$LOG" 2>&1 || true
         fail_step
     fi
     printf "\r\033[K  $(bar) ${DIM}%d/%d${RESET}  %s... ${DIM}waiting for API (%d/%d)${RESET}" \

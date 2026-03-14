@@ -42,35 +42,24 @@ async def get_genre_popularity():
 @router.get("/polarisation")
 async def get_genre_polarisation():
     query = """
-        WITH genre_ratings AS (
+        WITH genre_raw AS (
             SELECT
                 g.name as genre,
-                r.rating,
-                COUNT(*) as count
+                r.rating
             FROM genre g
             JOIN movie_genre mg ON g.genre_id = mg.genre_id
             JOIN rating r ON mg.movie_id = r.movie_id
-            GROUP BY g.name, r.rating
-        ),
-        genre_stats AS (
-            SELECT
-                genre,
-                SUM(count) as total_ratings,
-                SUM(CASE WHEN rating <= 2 THEN count ELSE 0 END) as low_ratings,
-                SUM(CASE WHEN rating >= 4 THEN count ELSE 0 END) as high_ratings,
-                SUM(CASE WHEN rating > 2 AND rating < 4 THEN count ELSE 0 END) as mid_ratings
-            FROM genre_ratings
-            GROUP BY genre
         )
         SELECT
             genre,
-            total_ratings,
-            ROUND(100.0 * low_ratings / total_ratings, 1) as low_pct,
-            ROUND(100.0 * mid_ratings / total_ratings, 1) as mid_pct,
-            ROUND(100.0 * high_ratings / total_ratings, 1) as high_pct,
-            ROUND(100.0 * (low_ratings + high_ratings) / total_ratings, 1) as polarisation_score
-        FROM genre_stats
-        WHERE total_ratings >= 100
+            COUNT(*) as total_ratings,
+            ROUND(100.0 * SUM(CASE WHEN rating <= 2 THEN 1 ELSE 0 END) / COUNT(*), 1) as low_pct,
+            ROUND(100.0 * SUM(CASE WHEN rating > 2 AND rating < 4 THEN 1 ELSE 0 END) / COUNT(*), 1) as mid_pct,
+            ROUND(100.0 * SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) / COUNT(*), 1) as high_pct,
+            ROUND(STDDEV(rating)::numeric, 3) as polarisation_score
+        FROM genre_raw
+        GROUP BY genre
+        HAVING COUNT(*) >= 100
         ORDER BY polarisation_score DESC
     """
     return execute_query(query)

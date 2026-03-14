@@ -13,7 +13,7 @@ import {
   Cell,
 } from "recharts"
 import { ratingsApi, genresApi } from "../services/api"
-import type { Genre } from "../types"
+import type { Genre, RatingDistribution } from "../types"
 import {
   Card,
   CardContent,
@@ -31,8 +31,22 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import InfoCard from "@/components/InfoCard"
+import { Users, Film, Star, BarChart3 } from "lucide-react"
 
 const COLORS = ["#ef4444", "#f59e0b", "#22c55e"]
+
+interface ProfileData {
+  stats: {
+    total_ratings: number
+    unique_users: number
+    unique_movies: number
+    mean_rating: number
+    min_rating: number
+    max_rating: number
+    stddev_rating: number
+  }
+  distribution: RatingDistribution[]
+}
 
 export default function RatingPatterns() {
   const [selectedGenre, setSelectedGenre] = useState("")
@@ -40,6 +54,11 @@ export default function RatingPatterns() {
   const { data: genres } = useQuery({
     queryKey: ["genres"],
     queryFn: () => genresApi.getGenres().then((res) => res.data as Genre[]),
+  })
+
+  const { data: profile, isLoading: loadingProfile } = useQuery({
+    queryKey: ["rating-profile"],
+    queryFn: () => ratingsApi.getProfile().then((res) => res.data as ProfileData),
   })
 
   const { data: patterns, isLoading: loadingPatterns } = useQuery({
@@ -58,7 +77,7 @@ export default function RatingPatterns() {
     enabled: !!selectedGenre,
   })
 
-  const isLoading = loadingPatterns || loadingLowRaters
+  const isLoading = loadingProfile || loadingPatterns || loadingLowRaters
 
   return (
     <div className="space-y-6">
@@ -75,6 +94,71 @@ export default function RatingPatterns() {
           <Skeleton className="h-80" />
         </div>
       )}
+
+    {profile && (
+      <>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <BarChart3 className="h-4 w-4" /> Total Ratings
+              </div>
+              <p className="text-2xl font-bold">{profile.stats.total_ratings.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <Users className="h-4 w-4" /> Unique Users
+              </div>
+              <p className="text-2xl font-bold">{profile.stats.unique_users.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <Film className="h-4 w-4" /> Rated Movies
+              </div>
+              <p className="text-2xl font-bold">{profile.stats.unique_movies.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <Star className="h-4 w-4" /> Mean Rating
+              </div>
+              <p className="text-2xl font-bold">{profile.stats.mean_rating}</p>
+              <p className="text-xs text-muted-foreground">&plusmn;{profile.stats.stddev_rating} stddev</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Rating Distribution</CardTitle>
+            <CardDescription>
+              How ratings are spread across the {profile.stats.min_rating}–{profile.stats.max_rating} scale
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-48 sm:h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={profile.distribution} margin={{ left: 10, right: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="rating" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value?: number) => [value?.toLocaleString() ?? "", "Ratings"]}
+                    labelFormatter={(label) => `Rating: ${label}`}
+                  />
+                  <Bar dataKey="count" fill="var(--primary)" name="count" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </>
+    )}
 
     {patterns && (
       <Card>

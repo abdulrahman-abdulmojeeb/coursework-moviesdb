@@ -74,6 +74,7 @@ export const genresApi = {
 
 // Ratings API
 export const ratingsApi = {
+  getProfile: () => api.get('/ratings/profile'),
   getPatterns: () => api.get('/ratings/patterns'),
   getCrossGenre: (sourceGenre: string, minRatings?: number) =>
     api.get('/ratings/cross-genre', { params: { source_genre: sourceGenre, min_ratings: minRatings } }),
