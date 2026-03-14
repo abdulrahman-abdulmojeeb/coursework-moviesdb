@@ -248,11 +248,11 @@ export default function MovieDetail() {
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold">
                   {movie.title}
-                  {movie.release_year && (
+                  {/* {movie.release_year && (
                     <span className="text-muted-foreground font-normal ml-2">
                       ({movie.release_year})
                     </span>
-                  )}
+                  )} */}
                 </h1>
 
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-2 text-sm text-muted-foreground">
@@ -417,7 +417,15 @@ export default function MovieDetail() {
           )}
 
           <div className="space-y-3">
-            {movie.avg_rating && (
+            {/* {movie.avg_rating && (
+            )} */}
+
+            {movie.avg_rating == 0 ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground italic">
+                <Star className="h-4 w-4 shrink-0" />
+                No MovieLens ratings exist for this movie
+              </div>
+            ) : (
               <RatingBar
                 label="MovieLens"
                 score={movie.avg_rating}
