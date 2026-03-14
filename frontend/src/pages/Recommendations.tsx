@@ -97,10 +97,10 @@ export default function Recommendations() {
                     <Film className="h-10 w-10 text-muted-foreground" />
                   </div>
                 )}
-                {movie.predicted_rating && (
+                {movie.weighted_rating != null && (
                   <div className="absolute top-2 right-2 bg-black/70 text-white text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
                     <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-                    {(movie.predicted_rating / 2).toFixed(1)}
+                    {movie.weighted_rating.toFixed(1)}
                   </div>
                 )}
               </div>

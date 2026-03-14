@@ -283,13 +283,38 @@ async def get_recommendations(
                 cm.vote_count,
                 md.poster_path,
                 ARRAY_AGG(DISTINCT g.name ORDER BY g.name) as genres,
-                'collaborative' as method
+                'collaborative' as method,
+                ROUND(CAST(
+                  (CASE WHEN er.imdb_rating IS NOT NULL THEN 0.30 * er.imdb_rating / 2.0 ELSE 0 END
+                 + CASE WHEN md.vote_average IS NOT NULL AND md.vote_count >= 5 THEN 0.25 * md.vote_average / 2.0 ELSE 0 END
+                 + CASE WHEN er.rotten_tomatoes_score IS NOT NULL THEN 0.25 * er.rotten_tomatoes_score / 20.0 ELSE 0 END
+                 + CASE WHEN ra.avg_rating IS NOT NULL THEN
+                     CASE WHEN ra.rating_count >= 5 THEN 0.10 ELSE 0.05 END * ra.avg_rating
+                   ELSE 0 END
+                 + CASE WHEN er.metacritic_score IS NOT NULL THEN 0.10 * er.metacritic_score / 20.0 ELSE 0 END)
+                 / NULLIF(
+                    CASE WHEN er.imdb_rating IS NOT NULL THEN 0.30 ELSE 0 END
+                  + CASE WHEN md.vote_average IS NOT NULL AND md.vote_count >= 5 THEN 0.25 ELSE 0 END
+                  + CASE WHEN er.rotten_tomatoes_score IS NOT NULL THEN 0.25 ELSE 0 END
+                  + CASE WHEN ra.avg_rating IS NOT NULL THEN
+                      CASE WHEN ra.rating_count >= 5 THEN 0.10 ELSE 0.05 END
+                    ELSE 0 END
+                  + CASE WHEN er.metacritic_score IS NOT NULL THEN 0.10 ELSE 0 END
+                 , 0)
+                AS NUMERIC), 2) as weighted_rating
             FROM candidate_movies cm
             JOIN movie m ON cm.movie_id = m.movie_id
             LEFT JOIN movie_detail md ON m.movie_id = md.movie_id
+            LEFT JOIN external_ratings er ON m.movie_id = er.movie_id
+            LEFT JOIN (
+                SELECT movie_id, AVG(rating) as avg_rating, COUNT(rating_id) as rating_count
+                FROM rating GROUP BY movie_id
+            ) ra ON m.movie_id = ra.movie_id
             LEFT JOIN movie_genre mg ON m.movie_id = mg.movie_id
             LEFT JOIN genre g ON mg.genre_id = g.genre_id
-            GROUP BY m.movie_id, m.title, m.release_year, cm.predicted_rating, cm.vote_count, md.poster_path
+            GROUP BY m.movie_id, m.title, m.release_year, cm.predicted_rating, cm.vote_count, md.poster_path,
+                     er.imdb_rating, er.rotten_tomatoes_score, er.metacritic_score,
+                     md.vote_average, md.vote_count, ra.avg_rating, ra.rating_count
             ORDER BY cm.predicted_rating DESC, cm.vote_count DESC
             LIMIT 20
         """, (current_user.id, current_user.id))
@@ -318,14 +343,39 @@ async def get_recommendations(
                 COUNT(*) as vote_count,
                 md.poster_path,
                 ARRAY_AGG(DISTINCT g.name ORDER BY g.name) as genres,
-                'content_based' as method
+                'content_based' as method,
+                ROUND(CAST(
+                  (CASE WHEN er.imdb_rating IS NOT NULL THEN 0.30 * er.imdb_rating / 2.0 ELSE 0 END
+                 + CASE WHEN md.vote_average IS NOT NULL AND md.vote_count >= 5 THEN 0.25 * md.vote_average / 2.0 ELSE 0 END
+                 + CASE WHEN er.rotten_tomatoes_score IS NOT NULL THEN 0.25 * er.rotten_tomatoes_score / 20.0 ELSE 0 END
+                 + CASE WHEN ra.avg_rating IS NOT NULL THEN
+                     CASE WHEN ra.rating_count >= 5 THEN 0.10 ELSE 0.05 END * ra.avg_rating
+                   ELSE 0 END
+                 + CASE WHEN er.metacritic_score IS NOT NULL THEN 0.10 * er.metacritic_score / 20.0 ELSE 0 END)
+                 / NULLIF(
+                    CASE WHEN er.imdb_rating IS NOT NULL THEN 0.30 ELSE 0 END
+                  + CASE WHEN md.vote_average IS NOT NULL AND md.vote_count >= 5 THEN 0.25 ELSE 0 END
+                  + CASE WHEN er.rotten_tomatoes_score IS NOT NULL THEN 0.25 ELSE 0 END
+                  + CASE WHEN ra.avg_rating IS NOT NULL THEN
+                      CASE WHEN ra.rating_count >= 5 THEN 0.10 ELSE 0.05 END
+                    ELSE 0 END
+                  + CASE WHEN er.metacritic_score IS NOT NULL THEN 0.10 ELSE 0 END
+                 , 0)
+                AS NUMERIC), 2) as weighted_rating
             FROM movie m
             JOIN movie_genre mg ON m.movie_id = mg.movie_id
             JOIN liked_genres lg ON mg.genre_id = lg.genre_id
             LEFT JOIN movie_detail md ON m.movie_id = md.movie_id
+            LEFT JOIN external_ratings er ON m.movie_id = er.movie_id
+            LEFT JOIN (
+                SELECT movie_id, AVG(rating) as avg_rating, COUNT(rating_id) as rating_count
+                FROM rating GROUP BY movie_id
+            ) ra ON m.movie_id = ra.movie_id
             LEFT JOIN genre g ON mg.genre_id = g.genre_id
             WHERE m.movie_id NOT IN (SELECT movie_id FROM rated_movies)
-            GROUP BY m.movie_id, m.title, m.release_year, md.poster_path
+            GROUP BY m.movie_id, m.title, m.release_year, md.poster_path,
+                     er.imdb_rating, er.rotten_tomatoes_score, er.metacritic_score,
+                     md.vote_average, md.vote_count, ra.avg_rating, ra.rating_count
             ORDER BY predicted_rating DESC
             LIMIT 20
         """, (current_user.id, current_user.id))

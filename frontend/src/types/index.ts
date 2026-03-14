@@ -168,6 +168,7 @@ export interface Recommendation {
   poster_path: string | null
   genres: string[]
   method: "collaborative" | "content_based"
+  weighted_rating?: number | null
 }
 
 export interface RecommendationsResponse {
