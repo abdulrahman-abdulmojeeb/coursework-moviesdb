@@ -17,7 +17,7 @@ export default function Recommendations() {
     enabled: isLoggedIn(),
   })
 
-  if (!isLoggedIn()) return <LoginRequired />
+  if (!isLoggedIn()) return <LoginRequired description="You need to be logged in to view your recommendations" />
 
   return (
     <div className="space-y-6">

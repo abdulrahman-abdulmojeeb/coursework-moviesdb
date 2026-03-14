@@ -49,7 +49,7 @@ export default function MyRatings() {
     return a.title.localeCompare(b.title)
   })
 
-  if (!isLoggedIn()) return <LoginRequired />
+  if (!isLoggedIn()) return <LoginRequired description="You need to be logged in to view and manage ratings" />
 
   return (
     <div className="space-y-6">

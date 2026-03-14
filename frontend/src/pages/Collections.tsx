@@ -89,7 +89,7 @@ export default function Collections() {
   })
 
   if (!isLoggedIn()) {
-    return <LoginRequired description="You need to be logged in to view and manage collections." />
+    return <LoginRequired description="You need to be logged in to view and manage collections" />
   }
 
   return (
