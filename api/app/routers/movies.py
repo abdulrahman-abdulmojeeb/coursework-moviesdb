@@ -24,57 +24,50 @@ async def get_movies(
 ):
     offset = (page - 1) * limit
 
-    # Build query dynamically based on filters
+    # Build WHERE conditions (min_rating handled separately via weighted_rating post-filter)
     conditions = []
-    params = []
+    base_params = []
 
     if title:
         conditions.append("m.title ILIKE %s")
-        params.append(f"%{title}%")
+        base_params.append(f"%{title}%")
 
     if genre:
         conditions.append("""
             m.movie_id IN (
-                SELECT mg.movie_id FROM movie_genre mg
-                JOIN genre g ON mg.genre_id = g.genre_id
-                WHERE g.name ILIKE %s
+                SELECT mg2.movie_id FROM movie_genre mg2
+                JOIN genre g2 ON mg2.genre_id = g2.genre_id
+                WHERE g2.name ILIKE %s
             )
         """)
-        params.append(f"%{genre}%")
+        base_params.append(f"%{genre}%")
 
     if year_from:
         conditions.append("m.release_year >= %s")
-        params.append(year_from)
+        base_params.append(year_from)
 
     if year_to:
         conditions.append("m.release_year <= %s")
-        params.append(year_to)
+        base_params.append(year_to)
 
-    if min_rating:
-        conditions.append("""
-            m.movie_id IN (
-                SELECT movie_id FROM rating
-                GROUP BY movie_id
-                HAVING AVG(rating) >= %s
-            )
-        """)
-        params.append(min_rating)
     if director:
         conditions.append("md.director ILIKE %s")
-        params.append(f"%{director}%") 
+        base_params.append(f"%{director}%")
 
     where_clause = " AND ".join(conditions) if conditions else "1=1"
 
-    # Map sort fields
+    # Sort configuration (no table aliases — used in outer query over subquery)
     sort_field_map = {
-        "title": "m.title",
-        "year": "m.release_year",
+        "title": "title",
+        "year": "release_year",
         "rating": "avg_rating",
         "weighted_rating": "weighted_rating",
     }
-    order_by = f"{sort_field_map[sort_by]} {sort_order.upper()}"
+    sort_col = sort_field_map[sort_by]
+    order_dir = sort_order.upper()
 
-    query = f"""
+    # Base query with all computed fields
+    base_query = f"""
         SELECT
             m.movie_id,
             m.title,
@@ -121,27 +114,50 @@ async def get_movies(
         GROUP BY m.movie_id, md.poster_path, md.overview, md.vote_average, md.vote_count,
                  er.imdb_rating, er.imdb_votes, er.rotten_tomatoes_score, er.metacritic_score,
                  ra.avg_rating, ra.rating_count
-        ORDER BY {order_by}
+    """
+
+    # Outer filter for min_rating (applied to computed weighted_rating)
+    outer_where = ""
+    query_params = list(base_params)
+
+    if min_rating is not None:
+        outer_where = "WHERE weighted_rating >= %s"
+        query_params.append(min_rating)
+
+    # Main query: wrap base in subquery for post-filters, sorting, pagination
+    query = f"""
+        SELECT * FROM ({base_query}) base
+        {outer_where}
+        ORDER BY {sort_col} {order_dir} NULLS LAST
         LIMIT %s OFFSET %s
     """
-    params.extend([limit, offset])
+    query_params.extend([limit, offset])
 
-    movies = execute_query(query, tuple(params))
+    movies = execute_query(query, tuple(query_params))
 
     # Add poster_url to each movie
     for movie in movies:
         movie["poster_url"] = build_poster_url(movie.get("poster_path"))
 
-    # Get total count
-    count_query = f"""
-        SELECT COUNT(DISTINCT m.movie_id)
-        FROM movie m
-        LEFT JOIN movie_detail md ON m.movie_id = md.movie_id
-        LEFT JOIN movie_genre mg ON m.movie_id = mg.movie_id
-        LEFT JOIN genre g ON mg.genre_id = g.genre_id
-        WHERE {where_clause}
-    """
-    total_result = execute_query_one(count_query, tuple(params[:-2]) if params[:-2] else None)
+    # Count query
+    if min_rating is not None:
+        count_query = f"""
+            SELECT COUNT(*) as count FROM ({base_query}) base
+            WHERE weighted_rating >= %s
+        """
+        count_params = list(base_params) + [min_rating]
+    else:
+        count_query = f"""
+            SELECT COUNT(DISTINCT m.movie_id)
+            FROM movie m
+            LEFT JOIN movie_detail md ON m.movie_id = md.movie_id
+            LEFT JOIN movie_genre mg ON m.movie_id = mg.movie_id
+            LEFT JOIN genre g ON mg.genre_id = g.genre_id
+            WHERE {where_clause}
+        """
+        count_params = list(base_params)
+
+    total_result = execute_query_one(count_query, tuple(count_params) if count_params else None)
     total = total_result["count"] if total_result else 0
 
     return {
@@ -160,9 +176,9 @@ async def export_enrichment_sql():
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        # movie_details
-        buf.write(b"TRUNCATE movie_details;\n")
-        buf.write(b"COPY movie_details FROM stdin;\n")
+        # movie_detail
+        buf.write(b"TRUNCATE movie_detail;\n")
+        buf.write(b"COPY movie_detail FROM stdin;\n")
         cursor.copy_to(buf, "movie_detail")
         buf.write(b"\\.\n")
 

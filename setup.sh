@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 
 TOTAL_STEPS=11
 CURRENT_STEP=0
@@ -47,6 +47,8 @@ fail_step() {
     echo "  $LOG"
     echo ""
     tail -20 "$LOG" | sed 's/^/  /'
+    echo ""
+    echo -e "  ${DIM}If this is a retry, run ${BOLD}./setup.sh --reset${RESET}${DIM} for a clean start.${RESET}"
     exit 1
 }
 
@@ -59,6 +61,7 @@ run_with_status() {
     fi
 
     #run command, tee to log, and parse progress lines
+    set +e  # temporarily disable errexit for pipe handling
     "$@" 2>&1 | while IFS= read -r line; do
         echo "$line" >> "$LOG"
         #try to extract progress info
@@ -69,7 +72,9 @@ run_with_status() {
                 "$CURRENT_STEP" "$TOTAL_STEPS" "$STEP_NAME" "$match"
         fi
     done
-    return "${PIPESTATUS[0]}"
+    local exit_code=${PIPESTATUS[0]}
+    set -e
+    return "$exit_code"
 }
 
 #banner
@@ -92,6 +97,12 @@ if [ "$preflight_ok" = true ] && ! docker info &>/dev/null; then
     preflight_ok=false
 fi
 
+if [ "$preflight_ok" = true ] && ! docker compose version &>/dev/null; then
+    echo -e "  ${RED}✘${RESET}  ${BOLD}docker compose${RESET} (V2) is required."
+    echo -e "     Update Docker Desktop or install the compose plugin."
+    preflight_ok=false
+fi
+
 if ! command -v curl &>/dev/null; then
     echo -e "  ${RED}✘${RESET}  ${BOLD}curl${RESET} is required but not found."
     preflight_ok=false
@@ -107,6 +118,13 @@ if [ "$preflight_ok" = false ]; then
     exit 1
 fi
 
+# Handle --reset flag: tear down containers and volumes for a clean start
+if [ "$1" = "--reset" ]; then
+    echo -e "  ${YELLOW}Resetting...${RESET} removing containers and database volume"
+    docker compose down -v >> "$LOG" 2>&1 || true
+    echo -e "  ${GREEN}✔${RESET}  Reset complete, starting fresh setup"
+    echo ""
+fi
 
 step "Create .env from template"
 if [ ! -f .env ]; then
@@ -194,7 +212,7 @@ step "Create default user"
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
     -X POST http://localhost:8000/api/auth/register \
     -H "Content-Type: application/json" \
-    -d '{"username":"admin","password":"comp22","invite_token":"b89c7ef625663c6d6e7d4e76dedb6d3e"}')
+    -d '{"username":"admin","password":"comp22"}')
 
 if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "400" ]; then
     done_step
