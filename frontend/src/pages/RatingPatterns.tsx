@@ -318,16 +318,19 @@ export default function RatingPatterns() {
           )}
 
           {crossGenre && crossGenre.length > 0 && (
-            <div className="h-64 sm:h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={crossGenre} layout="vertical" margin={{ left: 60, right: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" domain={[0, 5]} />
-                  <YAxis type="category" dataKey="genre" width={100} />
-                  <Tooltip />
-                  <Bar dataKey="avg_rating" fill="var(--primary)" name="Avg Rating" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-muted-foreground">Fans of {selectedGenre} also enjoy</h4>
+              <div className="h-64 sm:h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={crossGenre} layout="vertical" margin={{ left: 60, right: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" domain={[0, 5]} />
+                    <YAxis type="category" dataKey="genre" width={100} />
+                    <Tooltip />
+                    <Bar dataKey="avg_rating" fill="#22c55e" name="Avg Rating" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )}
 
@@ -342,16 +345,19 @@ export default function RatingPatterns() {
           )}
 
           {crossGenreNeg && crossGenreNeg.length > 0 && (
-            <div className="h-64 sm:h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={crossGenreNeg} layout="vertical" margin={{ left: 60, right: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" domain={[0, 5]} />
-                  <YAxis type="category" dataKey="genre" width={100} />
-                  <Tooltip />
-                  <Bar dataKey="avg_rating" fill="var(--primary)" name="Avg Rating" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-muted-foreground">Haters of {selectedGenre} rate other genres</h4>
+              <div className="h-64 sm:h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={crossGenreNeg} layout="vertical" margin={{ left: 60, right: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" domain={[0, 5]} />
+                    <YAxis type="category" dataKey="genre" width={100} />
+                    <Tooltip />
+                    <Bar dataKey="avg_rating" fill="#ef4444" name="Avg Rating" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )}
 
