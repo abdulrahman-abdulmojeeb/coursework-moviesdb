@@ -278,12 +278,7 @@ export default function RatingPatterns() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" domain={[0, 5]} />
                   <YAxis type="category" dataKey="genre" width={80} tick={{ fontSize: 12 }} />
-                  <Tooltip
-                    formatter={(value?: number, name?: string) => [
-                      value ?? 0,
-                      name === "harsh_avg" ? "Harsh Critics Avg" : "Overall Avg",
-                    ]}
-                  />
+                  <Tooltip />
                   <Legend />
                   <Bar dataKey="harsh_avg" fill="#ef4444" name="Harsh Critics Avg" />
                   <Bar dataKey="overall_avg" fill="var(--primary)" name="Overall Avg" />
