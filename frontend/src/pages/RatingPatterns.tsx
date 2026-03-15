@@ -279,8 +279,8 @@ export default function RatingPatterns() {
                   <XAxis type="number" domain={[0, 5]} />
                   <YAxis type="category" dataKey="genre" width={80} tick={{ fontSize: 12 }} />
                   <Tooltip
-                    formatter={(value: number, name: string) => [
-                      value,
+                    formatter={(value?: number, name?: string) => [
+                      value ?? 0,
                       name === "harsh_avg" ? "Harsh Critics Avg" : "Overall Avg",
                     ]}
                   />
