@@ -240,7 +240,7 @@ function TechStackContent() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow><TableCell className="font-medium">db</TableCell><TableCell><code>movielens-db</code></TableCell><TableCell><code>postgres:16-alpine</code></TableCell><TableCell><code>5432:5432</code></TableCell></TableRow>
+              <TableRow><TableCell className="font-medium">db</TableCell><TableCell><code>movielens-db</code></TableCell><TableCell><code>postgres:18-alpine</code></TableCell><TableCell><code>5432:5432</code></TableCell></TableRow>
               <TableRow><TableCell className="font-medium">backend</TableCell><TableCell><code>movielens-backend</code></TableCell><TableCell><code>custom</code></TableCell><TableCell><code>8001:8000</code></TableCell></TableRow>
               <TableRow><TableCell className="font-medium">frontend</TableCell><TableCell><code>movielens-frontend</code></TableCell><TableCell><code>custom</code></TableCell><TableCell><code>443:443, 80:80</code></TableCell></TableRow>
               <TableRow><TableCell className="font-medium">pgadmin</TableCell><TableCell><code>movielens-pgadmin</code></TableCell><TableCell><code>dpage/pgadmin4</code></TableCell><TableCell><code>5050:80</code></TableCell></TableRow>
@@ -267,7 +267,7 @@ function SQLQueriesContent() {
       </div>
 
       <InfoCard>
-        <p><strong>About:</strong> These SQL queries are executed using psycopg2 against PostgreSQL 16.</p>
+        <p><strong>About:</strong> These SQL queries are executed using psycopg2 against PostgreSQL 18.</p>
         <p><strong>Database Access:</strong> Use pgAdmin at <a href="https://db-comp22-cw.marlin.im" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://db-comp22-cw.marlin.im</a></p>
       </InfoCard>
     </div>
