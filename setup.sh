@@ -146,21 +146,32 @@ if [ ! -f .env ]; then
 fi
 done_step
 
-step "Download MovieLens dataset"
+step "Download datasets"
 DATA_DIR="./data"
 ML_DIR="$DATA_DIR/ml-latest-small"
+mkdir -p "$DATA_DIR"
+
+# MovieLens
 if [ ! -d "$ML_DIR" ]; then
-    mkdir -p "$DATA_DIR"
     curl -sL -o "$DATA_DIR/ml-latest-small.zip" \
         "https://files.grouplens.org/datasets/movielens/ml-latest-small.zip" >> "$LOG" 2>&1 || fail_step
     unzip -o "$DATA_DIR/ml-latest-small.zip" -d "$DATA_DIR" >> "$LOG" 2>&1 || fail_step
     rm -f "$DATA_DIR/ml-latest-small.zip"
 fi
 
+# Personality
+if [ ! -f "$ML_DIR/personality-data.csv" ] || grep -q "<!DOCTYPE" "$ML_DIR/personality-data.csv" 2>/dev/null; then
+    rm -f "$ML_DIR/personality-data.csv"
+    curl -sL -o "$DATA_DIR/personality-isf2018.zip" \
+        "https://files.grouplens.org/datasets/personality-isf2018/personality-isf2018.zip" >> "$LOG" 2>&1 || fail_step
+    unzip -oj "$DATA_DIR/personality-isf2018.zip" "personality-isf2018/personality-data.csv" -d "$ML_DIR" >> "$LOG" 2>&1 || fail_step
+    rm -f "$DATA_DIR/personality-isf2018.zip"
+fi
+
 done_step
 
 
-step "Validate dataset"
+step "Validate datasets"
 if [[ "$OSTYPE" == "msys" ]]; then
     py scripts/validate_data.py "$ML_DIR" >> "$LOG" 2>&1 || fail_step
 else
@@ -235,8 +246,10 @@ run_with_status "Processed [0-9]+/[0-9]+" \
 done_step
 
 step "Load tags, links & personality"
-run_with_status "Inserting [0-9]+ (tags|movie links|personality)" \
+run_with_status "Inserting [0-9]+ (tags|movie links)" \
     docker exec moviesdb-api python scripts/load_movielens.py --data-dir /app/data --step extras || fail_step
+run_with_status "Upserted [0-9]+ dataset users" \
+    docker exec moviesdb-api python scripts/import_personality_dataset.py --personality-csv /app/data/ml-latest-small/personality-data.csv || fail_step
 done_step
 
 step "Load enrichment data (posters, ratings, personality)"
