@@ -5,7 +5,7 @@ if [[ "$OSTYPE" == "msys" ]]; then
     export MSYS_NO_PATHCONV=1
 fi
 
-TOTAL_STEPS=11
+TOTAL_STEPS=10
 CURRENT_STEP=0
 LOG="/tmp/moviesdb-setup.log"
 BAR_WIDTH=30
@@ -157,27 +157,6 @@ if [ ! -d "$ML_DIR" ]; then
     rm -f "$DATA_DIR/ml-latest-small.zip"
 fi
 
-# Download Personality 2018 dataset if not present
-if [ ! -f "$ML_DIR/personality-data.csv" ]; then
-    curl -sL -o "$DATA_DIR/personality-isf2018.zip" \
-        "https://files.grouplens.org/datasets/personality-isf2018/personality-isf2018.zip" >> "$LOG" 2>&1 || true
-    if [ -f "$DATA_DIR/personality-isf2018.zip" ]; then
-        # Extract ONLY the personality-data.csv file to avoid overwriting MovieLens ratings.csv
-        unzip -j -o "$DATA_DIR/personality-isf2018.zip" "personality-data.csv" -d "$ML_DIR" >> "$LOG" 2>&1 || \
-        unzip -j -o "$DATA_DIR/personality-isf2018.zip" "personality-isf2018/personality-data.csv" -d "$ML_DIR" >> "$LOG" 2>&1 || true
-        rm -f "$DATA_DIR/personality-isf2018.zip"
-    fi
-fi
-
-# If ratings.csv was overwritten by the personality dataset, re-download the clean MovieLens one
-if grep -q "useri" "$ML_DIR/ratings.csv" 2>/dev/null; then
-    printf "\r\033[K  ${YELLOW}⚠${RESET}  Restoring original MovieLens ratings.csv...\n"
-    curl -sL -o "$DATA_DIR/ml-latest-small.zip" \
-        "https://files.grouplens.org/datasets/movielens/ml-latest-small.zip" >> "$LOG" 2>&1 || fail_step
-    unzip -p "$DATA_DIR/ml-latest-small.zip" "ml-latest-small/ratings.csv" > "$ML_DIR/ratings.csv" 2>>"$LOG" || fail_step
-    rm -f "$DATA_DIR/ml-latest-small.zip"
-fi
-
 done_step
 
 
@@ -260,19 +239,7 @@ run_with_status "Inserting [0-9]+ (tags|movie links|personality)" \
     docker exec moviesdb-api python scripts/load_movielens.py --data-dir /app/data --step extras || fail_step
 done_step
 
-step "Import personality dataset"
-PERSONALITY_CSV="$ML_DIR/personality-data.csv"
-if [ -f "$PERSONALITY_CSV" ]; then
-    run_with_status "\[[0-9]/3\]" \
-        docker exec moviesdb-api python scripts/import_personality_dataset.py \
-            --personality-csv /app/data/ml-latest-small/personality-data.csv || fail_step
-    done_step
-else
-    printf "\r\033[K  ${YELLOW}⚠${RESET}  %s ${DIM}(personality-data.csv not found – skipped)${RESET}\n" "$STEP_NAME"
-fi
-
-
-step "Load enrichment data (posters, overviews, ratings)"
+step "Load enrichment data (posters, ratings, personality)"
 ENRICHMENT_SQL="./database/enrichment_data.sql"
 if [ -f "$ENRICHMENT_SQL" ]; then
     docker exec -i moviesdb-postgres psql -U moviesdb -d moviesdb --quiet < "$ENRICHMENT_SQL" >> "$LOG" 2>&1 || fail_step

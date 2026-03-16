@@ -194,6 +194,18 @@ async def export_enrichment_sql(_=Depends(get_current_user)):
         cursor.copy_to(buf, "external_ratings")
         buf.write(b"\\.\n")
 
+        # personality_dataset_user
+        buf.write(b"TRUNCATE personality_dataset_user CASCADE;\n")
+        buf.write(b"COPY personality_dataset_user FROM stdin;\n")
+        cursor.copy_to(buf, "personality_dataset_user")
+        buf.write(b"\\.\n")
+
+        # personality_predicted_rating
+        buf.write(b"TRUNCATE personality_predicted_rating;\n")
+        buf.write(b"COPY personality_predicted_rating FROM stdin;\n")
+        cursor.copy_to(buf, "personality_predicted_rating")
+        buf.write(b"\\.\n")
+
         cursor.close()
 
     buf.seek(0)
