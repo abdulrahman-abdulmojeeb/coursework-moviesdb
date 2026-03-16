@@ -347,7 +347,7 @@ export default function RatingPatterns() {
           {crossGenreNeg && crossGenreNeg.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-muted-foreground">Haters of {selectedGenre} rate other genres</h4>
-              <div className="h-64 sm:h-80">
+              <div style={{ height: `${crossGenreNeg.length * 35 + 60}px` }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={crossGenreNeg} layout="vertical" margin={{ left: 60, right: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" />
