@@ -25,8 +25,8 @@ OMDB_BASE_URL = "http://www.omdbapi.com/"
 
 # Rate limiting: Free tier is 1,000 requests/day
 # Can be disabled with --fast flag for multiple keys
-REQUEST_DELAY = 1.0
-FAST_DELAY = 0.2  # 200ms delay when running fast (avoid rate limits)
+REQUEST_DELAY = 0
+FAST_DELAY = 0
 
 
 def get_db_connection():

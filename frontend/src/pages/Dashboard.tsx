@@ -21,6 +21,7 @@ const DEFAULTS = {
   sort_by: "title",
   sort_order: "asc",
   director: "",
+  has_awards: false,
 }
 
 function filtersFromParams(params: URLSearchParams) {
@@ -35,6 +36,7 @@ function filtersFromParams(params: URLSearchParams) {
     sort_by: (params.get("sort_by") === "rating" ? "weighted_rating" : params.get("sort_by")) || DEFAULTS.sort_by,
     sort_order: params.get("sort_order") || DEFAULTS.sort_order,
     director: params.get("director") || DEFAULTS.director,
+    has_awards: params.get("has_awards") === "true",
   }
 }
 
@@ -49,6 +51,7 @@ function filtersToParams(filters: typeof DEFAULTS) {
   if (filters.sort_by !== DEFAULTS.sort_by) params.set("sort_by", filters.sort_by)
   if (filters.sort_order !== DEFAULTS.sort_order) params.set("sort_order", filters.sort_order)
   if (filters.director) params.set("director", filters.director)
+  if (filters.has_awards) params.set("has_awards", "true")
   return params
 }
 

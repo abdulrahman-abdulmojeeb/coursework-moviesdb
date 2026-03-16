@@ -22,12 +22,16 @@ async def get_movies(
     sort_by: str = Query("title", regex="^(title|year|rating|weighted_rating)$"),
     sort_order: str = Query("asc", regex="^(asc|desc)$"),
     director: Optional[str] = Query(None, max_length=200),
+    has_awards: Optional[bool] = Query(None),
 ):
     offset = (page - 1) * limit
 
     # Build WHERE conditions (min_rating handled separately via weighted_rating post-filter)
     conditions = []
     base_params = []
+
+    if has_awards:
+        conditions.append("er.awards IS NOT NULL")
 
     if title:
         conditions.append("m.title ILIKE %s")
@@ -152,6 +156,7 @@ async def get_movies(
             SELECT COUNT(DISTINCT m.movie_id)
             FROM movie m
             LEFT JOIN movie_detail md ON m.movie_id = md.movie_id
+            LEFT JOIN external_ratings er ON m.movie_id = er.movie_id
             LEFT JOIN movie_genre mg ON m.movie_id = mg.movie_id
             LEFT JOIN genre g ON mg.genre_id = g.genre_id
             WHERE {where_clause}

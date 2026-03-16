@@ -464,7 +464,7 @@ export default function MovieDetail() {
               />
             )}
 
-            {movie.rotten_tomatoes_score !== null && movie.rotten_tomatoes_score !== undefined && (
+            {movie.rotten_tomatoes_score != null && movie.rotten_tomatoes_score > 0 && (
               <RatingBar
                 label="RT Critics"
                 score={movie.rotten_tomatoes_score}
@@ -474,7 +474,7 @@ export default function MovieDetail() {
               />
             )}
 
-            {movie.metacritic_score !== null && movie.metacritic_score !== undefined && (
+            {movie.metacritic_score != null && movie.metacritic_score > 0 && (
               <RatingBar
                 label="Metacritic"
                 score={movie.metacritic_score}

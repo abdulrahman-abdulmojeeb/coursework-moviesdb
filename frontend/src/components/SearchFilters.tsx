@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface FilterState {
   title: string
@@ -20,6 +21,7 @@ interface FilterState {
   sort_by: string
   sort_order: string
   director: string
+  has_awards: boolean
 }
 
 interface SearchFiltersProps {
@@ -36,7 +38,7 @@ export default function SearchFilters({
   return (
     <Card className="mb-6" role="search" aria-label="Filter movies">
       <CardContent className="pt-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
           {/* Title Search */}
           <div className="space-y-2">
             <Label htmlFor="title-search">Search Title</Label>
@@ -137,6 +139,23 @@ export default function SearchFilters({
                 <SelectItem value="2.5">2.5+ Stars</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Has Awards */}
+          <div className="space-y-2">
+            <Label>Awards</Label>
+            <div className="flex items-center gap-2 h-9">
+              <Checkbox
+                id="has-awards"
+                checked={filters.has_awards}
+                onCheckedChange={(checked) =>
+                  onFilterChange({ has_awards: checked === true })
+                }
+              />
+              <Label htmlFor="has-awards" className="font-normal cursor-pointer">
+                Has awards
+              </Label>
+            </div>
           </div>
         </div>
 
