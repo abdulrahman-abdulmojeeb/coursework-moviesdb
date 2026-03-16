@@ -17,6 +17,10 @@ A full-stack web application for exploring and analysing the MovieLens dataset, 
 
 ![System Diagram](images/system_diagram_databases.png)
 
+## ER Diagram
+
+![ER Diagram](images/moviedb_ERD.drawio.png)
+
 ## Quick Start
 
 ```bash
