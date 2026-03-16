@@ -80,10 +80,13 @@ export default function Personality() {
     queryFn: () => personalityApi.getSegments().then((res) => res.data),
   })
 
-  const radarData = traits?.map((t) => ({
-    trait: t.trait.replace("_", " "),
-    value: t.mean,
-  }))
+  const radarData = TRAITS.map((trait) => {
+  const t = traits?.find((t) => t.trait === trait)
+  return {
+    trait: trait.replace("_", " "),
+    value: t?.mean ?? 0,
+  }
+})
 
   const profileRadarData =
     genreProfile?.genre_lovers_profile && genreProfile?.overall_average
