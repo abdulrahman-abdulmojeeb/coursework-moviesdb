@@ -302,14 +302,15 @@ export default function Personality() {
 
       <InfoCard>
         <p>
-          <strong>Data Source:</strong> The personality data on this page is{" "}
-          <strong>synthetically generated</strong> for demonstration purposes.
-          It simulates Big Five personality traits (OCEAN model) for the 610 users in the MovieLens dataset.
+          <strong>Data Source:</strong> The personality data on this page comes from the{" "}
+          <a href="https://files.grouplens.org/datasets/personality-isf2018/" target="_blank" rel="noopener noreferrer" className="underline text-primary hover:text-primary/80">
+            Personality ISF 2018 dataset
+          </a>{" "}
+          published by GroupLens Research. It contains Big Five personality traits (OCEAN model on a 1-7 scale) for 1,820 users alongside predicted ratings for up to 12 movies per user.
         </p>
         <p>
-          <strong>Methodology:</strong> Each user is assigned randomized personality scores (1-5 scale) for
-          openness, conscientiousness, extraversion, agreeableness, and emotional stability. Correlations
-          between traits and genre preferences are computed by aggregating ratings from users with similar
+          <strong>Methodology:</strong> Correlations between personality traits and genre preferences are computed
+          by joining each user's predicted ratings with movie genres, then aggregating across users with similar
           personality profiles.
         </p>
       </InfoCard>
